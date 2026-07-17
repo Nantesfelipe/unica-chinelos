@@ -1,8 +1,10 @@
 const express = require('express');
 const pool = require('./config/database');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 app.use(express.json());
+app.use('/auth', authRoutes);
 
 // Rota de teste: confirma que o servidor está de pé
 app.get('/health', (req, res) => {

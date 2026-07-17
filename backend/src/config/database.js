@@ -1,4 +1,4 @@
-//pone com o db, criando uma Pool de conexões.
+//ponte com o db, criando uma Pool de conexões.
 
 const { Pool } = require('pg');
 require('dotenv').config();

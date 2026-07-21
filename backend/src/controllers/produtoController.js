@@ -1,7 +1,7 @@
 const {
-  criarProduto,
+  criarProdutos,
   listarProdutos,
-  buscarProdutoPorId,
+  buscarProdutosPorId,
   atualizarProduto,
   excluirProduto
 } = require('../models/productModel');

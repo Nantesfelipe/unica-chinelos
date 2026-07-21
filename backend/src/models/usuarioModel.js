@@ -22,4 +22,5 @@ async function buscarPorEmail(email) {
   return result.rows[0];
 }
 
-module.exports = { criarUsuario, buscarPorEmail }; //exporta as funcoes para q outros arquivos consigam usa-las
+module.exports = { criarUsuario, buscarPorEmail }; // exporta as funcoes para q outros arquivos consigam usa-las
+

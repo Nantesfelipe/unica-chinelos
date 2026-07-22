@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt'); //importa a biblioteca gerar hash e comparar senha
 const jwt = require('jsonwebtoken');
-const { criarUsuario, buscarPorEmail } = require('../models/usuarioModel');
+const { criarUsuario, buscarPorEmail } = require('../models/userModel');
 
 
 async function cadastrar(req, res) {

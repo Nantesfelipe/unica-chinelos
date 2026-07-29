@@ -47,4 +47,44 @@ async function criarPedidoComItens({ usuarioId, formaPagamento, itensComPreco, v
   }
 }
 
-module.exports = { buscarVariacaoComPreco, criarPedidoComItens };
+
+async function atualizarStatusPedido(id, status) {
+  const result = await pool.query(
+    `UPDATE pedido SET status = $1 WHERE id = $2 RETURNING *`,
+    [status, id]
+  );
+  return result.rows[0];
+}
+
+async function listarPedidosPorUsuario(usuarioId) {
+  const result = await pool.query(
+    `SELECT * FROM pedido WHERE usuario_id = $1 ORDER BY created_at DESC`,
+    [usuarioId]
+  );
+  return result.rows;
+}
+
+async function buscarPedidoComItens(pedidoId) {
+  const pedidoResult = await pool.query('SELECT * FROM pedido WHERE id = $1', [pedidoId]);
+  const pedido = pedidoResult.rows[0];
+  if (!pedido) return null;
+
+  const itensResult = await pool.query(
+    `SELECT ip.*, v.cor, v.tamanho, p.nome
+     FROM item_pedido ip
+     JOIN variacao v ON v.id = ip.variacao_id
+     JOIN produto p ON p.id = v.produto_id
+     WHERE ip.pedido_id = $1`,
+    [pedidoId]
+  );
+
+  return { ...pedido, itens: itensResult.rows };
+}
+
+module.exports = {
+  buscarVariacaoComPreco,
+  criarPedidoComItens,
+  atualizarStatusPedido,
+  listarPedidosPorUsuario,
+  buscarPedidoComItens
+};

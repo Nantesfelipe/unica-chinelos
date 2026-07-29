@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { criar, listar, buscarPorId, atualizar, excluir } = require('../controllers/productController');
 const { autenticar, apenasAdmin } = require('../middlewares/authMiddleware');
+const variationRoutes = require('./variationRoutes');
 
 // Rotas públicas (qualquer cliente pode ver produtos)
 router.get('/', listar);
@@ -12,6 +13,7 @@ router.get('/:id', buscarPorId);
 router.post('/', autenticar, apenasAdmin, criar);
 router.put('/:id', autenticar, apenasAdmin, atualizar);
 router.delete('/:id', autenticar, apenasAdmin, excluir);
+router.use('/:id/variations', variationRoutes);
 
 router.use('/:id/images', productImageRoutes);
 module.exports = router;

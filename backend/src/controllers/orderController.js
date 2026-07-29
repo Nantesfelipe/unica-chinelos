@@ -40,4 +40,52 @@ async function finalizar(req, res) {
   }
 }
 
-module.exports = { finalizar };
+const STATUS_VALIDOS = ['Recebido', 'Em separação', 'Enviado', 'Entregue', 'Cancelado'];
+
+async function atualizarStatus(req, res) {
+  try {
+    const { status } = req.body;
+
+    if (!STATUS_VALIDOS.includes(status)) {
+      return res.status(400).json({ erro: 'Status inválido.' });
+    }
+
+    const pedido = await atualizarStatusPedido(req.params.id, status);
+    if (!pedido) {
+      return res.status(404).json({ erro: 'Pedido não encontrado.' });
+    }
+    res.json(pedido);
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+}
+
+async function meusPedidos(req, res) {
+  try {
+    const pedidos = await listarPedidosPorUsuario(req.usuario.id);
+    res.json(pedidos);
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+}
+
+async function detalhesPedido(req, res) {
+  try {
+    const pedido = await buscarPedidoComItens(req.params.id);
+
+    if (!pedido) {
+      return res.status(404).json({ erro: 'Pedido não encontrado.' });
+    }
+
+    if (pedido.usuario_id !== req.usuario.id && req.usuario.tipo !== 'admin') {
+      return res.status(403).json({ erro: 'Acesso negado a este pedido.' });
+    }
+
+    res.json(pedido);
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+}
+
+module.exports = { finalizar, atualizarStatus, meusPedidos, detalhesPedido };
+

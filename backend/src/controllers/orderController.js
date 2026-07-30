@@ -1,4 +1,10 @@
-const { buscarVariacaoComPreco, criarPedidoComItens } = require('../models/orderModel');
+const {
+  buscarVariacaoComPreco,
+  criarPedidoComItens,
+  atualizarStatusPedido,
+  listarPedidosPorUsuario,
+  buscarPedidoComItens
+} = require('../models/orderModel');
 
 async function finalizar(req, res) {
   try {
@@ -40,7 +46,7 @@ async function finalizar(req, res) {
   }
 }
 
-const STATUS_VALIDOS = ['Recebido', 'Em separação', 'Enviado', 'Entregue', 'Cancelado'];
+const STATUS_VALIDOS = ['recebido', 'em_separacao', 'enviado', 'entregue', 'cancelado'];
 
 async function atualizarStatus(req, res) {
   try {

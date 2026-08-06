@@ -6,12 +6,17 @@ const productRoutes = require('./routes/productRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./docs/swagger");
+
 const app = express();
 app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/products', productRoutes);
 app.use('/favorites', favoriteRoutes);
 app.use('/orders', orderRoutes);
+
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Rota de teste: confirma que o servidor está de pé
 app.get('/health', (req, res) => {

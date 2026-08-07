@@ -1,9 +1,10 @@
 //criando a rota de cadastro de usuario.
 
-const express = require('express'); //importa o framwork usado para criar a API
+const express = require('express');
 
 const router = express.Router();
 const { cadastrar, login } = require('../controllers/authController');
+
 /**
  * @swagger
  * /auth/cadastro:
@@ -11,7 +12,7 @@ const { cadastrar, login } = require('../controllers/authController');
  *     tags:
  *       - Autenticação
  *     summary: Cadastra um novo usuário.
- *     description: Cria uma nova conta de usuário utilizando nome, e-mail e senha.
+ *     description: Cria uma nova conta utilizando nome, e-mail e senha.
  *     requestBody:
  *       required: true
  *       content:
@@ -43,6 +44,7 @@ const { cadastrar, login } = require('../controllers/authController');
  *         description: Erro interno do servidor.
  */
 router.post('/cadastro', cadastrar);
+
 /**
  * @swagger
  * /auth/login:
@@ -100,5 +102,6 @@ router.post('/cadastro', cadastrar);
  *       500:
  *         description: Erro interno do servidor.
  */
-router.post('/login' , login);
+router.post('/login', login);
+
 module.exports = router;

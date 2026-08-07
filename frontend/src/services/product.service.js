@@ -13,3 +13,11 @@ export function buscarProdutoPorId(id) {
 export function listarCategorias() {
   return api('/categories');
 }
+
+export function listarVariacoes(produtoId) {
+  return api(`/products/${produtoId}/variations`);
+}
+
+export function listarImagens(produtoId) {
+  return api(`/products/${produtoId}/images`);
+}

@@ -5,11 +5,17 @@ const { autenticar, apenasAdmin } = require('./middlewares/authMiddleware');
 const productRoutes = require('./routes/productRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
+const cors = require('cors');
+
 
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./docs/swagger");
 
 const app = express();
+
+app.use(cors());
+app.use('/categories', categoryRoutes);
 app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/products', productRoutes);

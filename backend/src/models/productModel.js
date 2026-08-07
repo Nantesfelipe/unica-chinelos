@@ -10,9 +10,24 @@ async function criarProduto({ nome, descricao, preco, categoriaId, destaque, pro
     return result.rows[0];
 }
 
-async function listarProdutos() {
-    const result = await pool.query('SELECT * FROM produto ORDER BY created_at DESC');
-    return result.rows;
+async function listarProdutos({ busca, categoriaId } = {}) {
+  let query = 'SELECT * FROM produto WHERE 1=1';
+  const valores = [];
+
+  if (busca) {
+    valores.push(`%${busca}%`);
+    query += ` AND nome ILIKE $${valores.length}`;
+  }
+
+  if (categoriaId) {
+    valores.push(categoriaId);
+    query += ` AND categoria_id = $${valores.length}`;
+  }
+
+  query += ' ORDER BY created_at DESC';
+
+  const result = await pool.query(query, valores);
+  return result.rows;
 }
 
 async function buscarProdutoPorId(id) {

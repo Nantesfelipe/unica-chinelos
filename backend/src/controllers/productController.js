@@ -23,7 +23,8 @@ async function criar(req, res) {
 
 async function listar(req, res) {
   try {
-    const produtos = await listarProdutos();
+    const { busca, categoriaId } = req.query;
+    const produtos = await listarProdutos({ busca, categoriaId });
     res.json(produtos);
   } catch (err) {
     res.status(500).json({ erro: err.message });

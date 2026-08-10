@@ -1,16 +1,39 @@
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 
-function BarraPesquisa({ value, onChange, placeholder = 'Buscar por nome' }) {
+function BarraPesquisa({
+  value = '',
+  onChange,
+  placeholder = 'Buscar por nome ou cor',
+}) {
+  function limpar() {
+    onChange('');
+  }
+
   return (
-    <div className="flex items-center gap-2 border border-[#8e8980]/40 rounded-md px-3 py-2 max-w-xs">
-      <Search size={16} className="text-[#8e8980]" />
+    <div className="flex items-center gap-3 border border-[#8e8980]/40 rounded-md px-3 py-2.5 bg-white w-full max-w-sm">
+      <Search
+        size={17}
+        className="text-[#8e8980] flex-shrink-0"
+      />
+
       <input
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="text-sm outline-none w-full bg-transparent text-[#171511]"
+        className="text-sm outline-none w-full bg-transparent text-[#171511] placeholder-[#8e8980]"
       />
+
+      {value && (
+        <button
+          type="button"
+          onClick={limpar}
+          title="Limpar busca"
+          className="text-[#8e8980] hover:text-[#171511]"
+        >
+          <X size={16} />
+        </button>
+      )}
     </div>
   );
 }

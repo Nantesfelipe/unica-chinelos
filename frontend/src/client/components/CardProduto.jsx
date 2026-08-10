@@ -1,16 +1,42 @@
 import { Link } from 'react-router-dom';
+import { ImageOff } from 'lucide-react';
+
+import formatCurrency from '../../utils/formatCurrency';
 
 function CardProduto({ produto }) {
+  const imagem =
+    produto?.imagem ||
+    produto?.imagem_url ||
+    produto?.imagemUrl ||
+    produto?.imagens?.[0]?.url;
+
   return (
     <Link
       to={`/produto/${produto.id}`}
-      className="border border-[#8e8980]/30 rounded-lg overflow-hidden block hover:border-[#746c5c] transition-colors"
+      className="group block bg-white border border-[#8e8980]/25 rounded-lg overflow-hidden hover:border-[#746c5c] transition-colors"
     >
-      <div className="bg-[#e2dacc] h-28" />
-      <div className="p-3">
-        <p className="text-sm text-[#171511]">{produto.nome}</p>
-        <p className="text-sm font-semibold text-[#171511]">
-          R$ {Number(produto.preco).toFixed(2).replace('.', ',')}
+      <div className="h-64 bg-[#e2dacc] overflow-hidden flex items-center justify-center">
+        {imagem ? (
+          <img
+            src={imagem}
+            alt={produto.nome}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <ImageOff
+            size={30}
+            className="text-[#8e8980]"
+          />
+        )}
+      </div>
+
+      <div className="p-4">
+        <p className="text-sm text-[#171511] line-clamp-2 min-h-10">
+          {produto.nome}
+        </p>
+
+        <p className="text-base font-semibold text-[#171511] mt-2">
+          {formatCurrency(produto.preco)}
         </p>
       </div>
     </Link>

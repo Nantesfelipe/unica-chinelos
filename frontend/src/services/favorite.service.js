@@ -1,18 +1,18 @@
 import { api } from './api';
 
-export function listarCategorias() {
-  return api('/categories');
+export function listarFavoritos() {
+  return api('/favorites');
 }
 
-export function criarCategoria(dados) {
-  return api('/categories', {
+export function adicionarFavorito(produtoId) {
+  return api('/favorites', {
     method: 'POST',
-    body: JSON.stringify(dados),
+    body: JSON.stringify({ produtoId }),
   });
 }
 
-export function excluirCategoria(id) {
-  return api(`/categories/${id}`, {
+export function removerFavorito(produtoId) {
+  return api(`/favorites/${produtoId}`, {
     method: 'DELETE',
   });
 }

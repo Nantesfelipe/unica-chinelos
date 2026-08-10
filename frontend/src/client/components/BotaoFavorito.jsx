@@ -1,14 +1,27 @@
 import { Heart } from 'lucide-react';
 
-function BotaoFavorito({ favoritado, onToggle }) {
+function BotaoFavorito({
+  favoritado = false,
+  onToggle,
+}) {
   return (
     <button
+      type="button"
       onClick={onToggle}
-      className="border border-[#8e8980]/40 rounded-md p-2 hover:border-[#746c5c] transition-colors"
+      title={
+        favoritado
+          ? 'Remover dos favoritos'
+          : 'Adicionar aos favoritos'
+      }
+      className="border border-[#8e8980]/40 rounded-md p-2.5 hover:border-[#746c5c] transition-colors"
     >
       <Heart
-        size={18}
-        className={favoritado ? 'fill-[#746c5c] text-[#746c5c]' : 'text-[#8e8980]'}
+        size={19}
+        className={
+          favoritado
+            ? 'fill-[#746c5c] text-[#746c5c]'
+            : 'text-[#8e8980]'
+        }
       />
     </button>
   );

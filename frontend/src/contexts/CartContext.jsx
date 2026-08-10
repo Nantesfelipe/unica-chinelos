@@ -13,15 +13,24 @@ function CartProvider({ children }) {
     localStorage.setItem('carrinho', JSON.stringify(carrinho));
   }, [carrinho]);
 
-  function adicionarAoCarrinho(produto) {
+  function adicionarAoCarrinho(produto, variacao) {
+    if (!variacao) {
+      throw new Error('Selecione uma variação antes de adicionar ao carrinho.');
+    }
+
+    const imagem =
+      produto?.imagem ||
+      produto?.imagem_url ||
+      produto?.imagens?.[0]?.url;
+
     setCarrinho((carrinhoAtual) => {
       const itemExistente = carrinhoAtual.find(
-        (item) => item.id === produto.id
+        (item) => item.id === variacao.id
       );
 
       if (itemExistente) {
         return carrinhoAtual.map((item) =>
-          item.id === produto.id
+          item.id === variacao.id
             ? { ...item, quantidade: item.quantidade + 1 }
             : item
         );
@@ -30,7 +39,14 @@ function CartProvider({ children }) {
       return [
         ...carrinhoAtual,
         {
-          ...produto,
+          id: variacao.id,
+          produtoId: produto.id,
+          variacaoId: variacao.id,
+          nome: produto.nome,
+          preco: produto.preco,
+          cor: variacao.cor,
+          tamanho: variacao.tamanho,
+          imagem,
           quantidade: 1,
         },
       ];

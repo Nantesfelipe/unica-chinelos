@@ -4,20 +4,14 @@ function Button({
   onClick,
   disabled = false,
   variant = 'primary',
+  fullWidth = true,
   className = '',
 }) {
   const variantes = {
-    primary:
-      'bg-[#171511] text-[#e2dacc] hover:bg-[#746c5c]',
-
-    secondary:
-      'bg-[#746c5c] text-[#e2dacc] hover:bg-[#74645c]',
-
-    outline:
-      'border border-[#8e8980]/50 text-[#171511] hover:border-[#746c5c]',
-
-    danger:
-      'bg-red-700 text-white hover:bg-red-800',
+    primary: 'bg-[#171511] text-[#e2dacc] hover:bg-[#746c5c]',
+    secondary: 'bg-[#746c5c] text-[#e2dacc] hover:bg-[#74645c]',
+    outline: 'border border-[#8e8980]/50 text-[#171511] hover:border-[#746c5c]',
+    danger: 'bg-red-700 text-white hover:bg-red-800',
   };
 
   return (
@@ -26,7 +20,7 @@ function Button({
       onClick={onClick}
       disabled={disabled}
       className={`
-        w-full
+        ${fullWidth ? 'w-full' : 'w-auto'}
         px-4
         py-3
         rounded-md

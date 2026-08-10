@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import {
-  ShoppingCart,
-  Check,
-} from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ShoppingCart, Check } from 'lucide-react';
 
 import {
   buscarProdutoPorId,
@@ -11,7 +8,14 @@ import {
   listarImagens,
 } from '../../services/product.service';
 
+import {
+  listarFavoritos,
+  adicionarFavorito,
+  removerFavorito,
+} from '../../services/favorite.service';
+
 import useCart from '../../hooks/useCart';
+import useAuth from '../../hooks/useAuth';
 
 import GaleriaProduto from '../components/GaleriaProduto';
 import BotaoFavorito from '../components/BotaoFavorito';
@@ -23,15 +27,20 @@ import formatCurrency from '../../utils/formatCurrency';
 
 function Produto() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const { adicionarAoCarrinho } = useCart();
+  const { autenticado } = useAuth();
 
   const [produto, setProduto] = useState(null);
   const [variacoes, setVariacoes] = useState([]);
   const [imagens, setImagens] = useState([]);
+  const [variacaoSelecionada, setVariacaoSelecionada] = useState(null);
 
+  const [favoritado, setFavoritado] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
+  const [erroCarrinho, setErroCarrinho] = useState('');
   const [adicionado, setAdicionado] = useState(false);
 
   useEffect(() => {
@@ -40,27 +49,21 @@ function Produto() {
       setErro('');
 
       try {
-        const [
-          produtoData,
-          variacoesData,
-          imagensData,
-        ] = await Promise.all([
+        const [produtoData, variacoesData, imagensData] = await Promise.all([
           buscarProdutoPorId(id),
           listarVariacoes(id),
           listarImagens(id),
         ]);
 
         setProduto(produtoData);
-        setVariacoes(
-          Array.isArray(variacoesData)
-            ? variacoesData
-            : []
+
+        const variacoesArray = Array.isArray(variacoesData) ? variacoesData : [];
+        setVariacoes(variacoesArray);
+        setVariacaoSelecionada(
+          variacoesArray.find((v) => v.estoque > 0) || variacoesArray[0] || null
         );
-        setImagens(
-          Array.isArray(imagensData)
-            ? imagensData
-            : []
-        );
+
+        setImagens(Array.isArray(imagensData) ? imagensData : []);
       } catch (error) {
         setErro(error.message);
       } finally {
@@ -71,13 +74,56 @@ function Produto() {
     carregarProduto();
   }, [id]);
 
+  useEffect(() => {
+    if (!autenticado) {
+      setFavoritado(false);
+      return;
+    }
+
+    listarFavoritos()
+      .then((favoritos) => {
+        const lista = Array.isArray(favoritos) ? favoritos : [];
+        setFavoritado(lista.some((item) => String(item.id) === String(id)));
+      })
+      .catch(() => setFavoritado(false));
+  }, [autenticado, id]);
+
+  async function handleToggleFavorito() {
+    if (!autenticado) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      if (favoritado) {
+        await removerFavorito(id);
+        setFavoritado(false);
+      } else {
+        await adicionarFavorito(id);
+        setFavoritado(true);
+      }
+    } catch (error) {
+      setErroCarrinho(error.message);
+    }
+  }
+
   function adicionarProduto() {
-    adicionarAoCarrinho(produto);
+    setErroCarrinho('');
+
+    if (!variacaoSelecionada) {
+      setErroCarrinho('Selecione uma variação antes de adicionar ao carrinho.');
+      return;
+    }
+
+    if (variacaoSelecionada.estoque === 0) {
+      setErroCarrinho('Essa variação está sem estoque.');
+      return;
+    }
+
+    adicionarAoCarrinho(produto, variacaoSelecionada);
     setAdicionado(true);
 
-    setTimeout(() => {
-      setAdicionado(false);
-    }, 2000);
+    setTimeout(() => setAdicionado(false), 2000);
   }
 
   if (carregando) {
@@ -91,9 +137,7 @@ function Produto() {
   if (erro || !produto) {
     return (
       <section className="max-w-7xl mx-auto px-6 py-16">
-        <p className="text-red-700">
-          {erro || 'Produto não encontrado.'}
-        </p>
+        <p className="text-red-700">{erro || 'Produto não encontrado.'}</p>
       </section>
     );
   }
@@ -101,28 +145,18 @@ function Produto() {
   return (
     <section className="max-w-7xl mx-auto px-6 py-12">
       <div className="grid md:grid-cols-2 gap-10 lg:gap-16">
-
-        <GaleriaProduto
-          imagens={imagens}
-          nome={produto.nome}
-        />
+        <GaleriaProduto imagens={imagens} nome={produto.nome} />
 
         <div>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm text-[#74645c]">
-                Produto
-              </p>
-
+              <p className="text-sm text-[#74645c]">Produto</p>
               <h1 className="text-3xl font-semibold text-[#171511] mt-1">
                 {produto.nome}
               </h1>
             </div>
 
-            <BotaoFavorito
-              favoritado={false}
-              onToggle={() => {}}
-            />
+            <BotaoFavorito favoritado={favoritado} onToggle={handleToggleFavorito} />
           </div>
 
           <p className="text-2xl font-semibold text-[#171511] mt-6">
@@ -137,38 +171,57 @@ function Produto() {
 
           {variacoes.length > 0 && (
             <div className="mt-8">
-              <h2 className="font-medium text-[#171511] mb-3">
-                Variações
-              </h2>
+              <h2 className="font-medium text-[#171511] mb-3">Variações</h2>
 
               <div className="flex flex-wrap gap-2">
-                {variacoes.map((variacao) => (
-                  <button
-                    key={variacao.id}
-                    type="button"
-                    className="border border-[#8e8980]/40 rounded-md px-4 py-2 text-sm text-[#171511] hover:border-[#746c5c]"
-                  >
-                    {variacao.cor ||
-                      variacao.tamanho ||
-                      `Variação ${variacao.id}`}
-                  </button>
-                ))}
+                {variacoes.map((variacao) => {
+                  const selecionada = variacaoSelecionada?.id === variacao.id;
+                  const semEstoque = variacao.estoque === 0;
+
+                  return (
+                    <button
+                      key={variacao.id}
+                      type="button"
+                      disabled={semEstoque}
+                      onClick={() => setVariacaoSelecionada(variacao)}
+                      className={`border rounded-md px-4 py-2 text-sm transition-colors ${
+                        selecionada
+                          ? 'border-[#746c5c] text-[#171511] bg-[#e2dacc]'
+                          : 'border-[#8e8980]/40 text-[#171511] hover:border-[#746c5c]'
+                      } ${semEstoque ? 'opacity-40 cursor-not-allowed line-through' : ''}`}
+                    >
+                      {variacao.cor || ''} {variacao.tamanho || ''}
+                      {!variacao.cor && !variacao.tamanho && `Variação ${variacao.id}`}
+                    </button>
+                  );
+                })}
               </div>
+
+              <p className="text-xs text-[#8e8980] mt-3">
+                {variacaoSelecionada
+                  ? variacaoSelecionada.estoque > 0
+                    ? `${variacaoSelecionada.estoque} em estoque`
+                    : 'Sem estoque para essa variação'
+                  : 'Selecione uma variação'}
+              </p>
             </div>
+          )}
+
+          {erroCarrinho && (
+            <p className="text-sm text-red-700 mt-4">{erroCarrinho}</p>
           )}
 
           <div className="mt-8">
             <Button
               onClick={adicionarProduto}
               variant="primary"
+              disabled={!variacaoSelecionada || variacaoSelecionada.estoque === 0}
             >
               {adicionado ? (
-                <>
-                  <span className="inline-flex items-center justify-center gap-2">
-                    <Check size={18} />
-                    Adicionado ao carrinho
-                  </span>
-                </>
+                <span className="inline-flex items-center justify-center gap-2">
+                  <Check size={18} />
+                  Adicionado ao carrinho
+                </span>
               ) : (
                 <span className="inline-flex items-center justify-center gap-2">
                   <ShoppingCart size={18} />

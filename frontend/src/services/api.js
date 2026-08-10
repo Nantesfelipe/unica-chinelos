@@ -1,20 +1,30 @@
-const BASE_URL = import.meta.env.VITE_API_URL;
+const API_URL = 'http://localhost:3000';
 
-async function api(endpoint, options = {}) {
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
+export async function api(endpoint, options = {}) {
+  const token = localStorage.getItem('token');
 
-  if (!response.ok) {
-    const erro = await response.json().catch(() => ({ erro: 'Erro desconhecido' }));
-    throw new Error(erro.erro || 'Erro na requisição');
+  const headers = {
+    ...options.headers,
+  };
+
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
   }
 
-  return response.json();
-}
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
-export default api;
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.erro || 'Erro na requisição.');
+  }
+
+  return data;
+}

@@ -10,9 +10,13 @@ async function criarProduto({ nome, descricao, preco, categoriaId, destaque, pro
     return result.rows[0];
 }
 
-async function listarProdutos({ busca, categoriaId } = {}) {
+async function listarProdutos({ busca, categoriaId, incluirInativos } = {}) {
   let query = 'SELECT * FROM produto WHERE 1=1';
   const valores = [];
+
+  if (!incluirInativos) {
+    query += ' AND ativo = true';
+  }
 
   if (busca) {
     valores.push(`%${busca}%`);
@@ -28,6 +32,22 @@ async function listarProdutos({ busca, categoriaId } = {}) {
 
   const result = await pool.query(query, valores);
   return result.rows;
+}
+
+async function desativarProduto(id) {
+  const result = await pool.query(
+    'UPDATE produto SET ativo = false WHERE id = $1 RETURNING *',
+    [id]
+  );
+  return result.rows[0];
+}
+
+async function reativarProduto(id) {
+  const result = await pool.query(
+    'UPDATE produto SET ativo = true WHERE id = $1 RETURNING *',
+    [id]
+  );
+  return result.rows[0];
 }
 
 async function buscarProdutoPorId(id) {
@@ -55,4 +75,12 @@ async function excluirProduto(id) {
     await pool.query('DELETE FROM produto WHERE id = $1', [id]);
 }
 
-module.exports = { criarProduto, listarProdutos, buscarProdutoPorId, atualizarProduto, excluirProduto };
+module.exports = {
+  criarProduto,
+  listarProdutos,
+  buscarProdutoPorId,
+  atualizarProduto,
+  desativarProduto,
+  reativarProduto,
+  excluirProduto,
+};

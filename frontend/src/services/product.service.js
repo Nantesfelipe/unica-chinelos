@@ -2,10 +2,11 @@ import { api } from './api';
 
 // Produtos
 
-export function listarProdutos() {
-  return api('/products');
+export function listarProdutos(filtros = {}) {
+  const params = new URLSearchParams(filtros).toString();
+  const query = params ? `?${params}` : '';
+  return api(`/products${query}`);
 }
-
 export function buscarProdutoPorId(id) {
   return api(`/products/${id}`);
 }
@@ -46,7 +47,12 @@ export function criarVariacao(produtoId, dados) {
 
 
 // Imagens
-
+export function reativarProduto(id) {
+  return api(`/products/${id}/reativar`, { method: 'PATCH' });
+}
+export function excluirProdutoDefinitivo(id) {
+  return api(`/products/${id}/definitivo`, { method: 'DELETE' });
+}
 export function listarImagens(produtoId) {
   return api(`/products/${produtoId}/images`);
 }

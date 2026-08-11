@@ -1,7 +1,8 @@
 const productImageRoutes = require('./productImageRoutes');
 const express = require('express');
 const router = express.Router();
-const { criar, listar, buscarPorId, atualizar, excluir } = require('../controllers/productController');
+const { criar, listar, buscarPorId, atualizar, desativar, reativar, excluirDefinitivo } = require('../controllers/productController');
+
 const { autenticar, apenasAdmin } = require('../middlewares/authMiddleware');
 const variationRoutes = require('./variationRoutes');
 
@@ -144,9 +145,12 @@ router.put('/:id', autenticar, apenasAdmin, atualizar);
  *       500:
  *         description: Erro interno do servidor.
  */
-router.delete('/:id', autenticar, apenasAdmin, excluir);
+router.delete('/:id', autenticar, apenasAdmin, desativar);
+router.delete('/:id/definitivo', autenticar, apenasAdmin, excluirDefinitivo);
+router.patch('/:id/reativar', autenticar, apenasAdmin, reativar);
 
 router.use('/:id/variations', variationRoutes);
 router.use('/:id/images', productImageRoutes);
+
 
 module.exports = router;

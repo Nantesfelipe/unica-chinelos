@@ -15,12 +15,13 @@ const swaggerSpec = require("./docs/swagger");
 const app = express();
 
 app.use(cors());
-app.use('/categories', categoryRoutes);
+
 app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/products', productRoutes);
 app.use('/favorites', favoriteRoutes);
 app.use('/orders', orderRoutes);
+app.use('/categories', categoryRoutes);
 
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

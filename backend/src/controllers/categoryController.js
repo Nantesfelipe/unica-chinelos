@@ -27,6 +27,11 @@ async function excluir(req, res) {
     await excluirCategoria(req.params.id);
     res.status(204).send();
   } catch (err) {
+    if (err.code === '23503') {
+      return res.status(409).json({
+        erro: 'Não é possível excluir esta categoria porque existem produtos vinculados a ela.',
+      });
+    }
     res.status(500).json({ erro: err.message });
   }
 }

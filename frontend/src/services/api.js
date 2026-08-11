@@ -20,6 +20,13 @@ export async function api(endpoint, options = {}) {
     headers,
   });
 
+  if (response.status === 204) {
+    if (!response.ok) {
+      throw new Error('Erro na requisição.');
+    }
+    return null;
+  }
+
   const data = await response.json();
 
   if (!response.ok) {

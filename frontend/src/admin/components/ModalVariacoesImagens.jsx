@@ -181,27 +181,35 @@ function ModalVariacoesImagens({ aberto, onFechar, produto }) {
           </div>
         )}
 
-        <div className="flex items-center gap-3">
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={(e) => setArquivos(Array.from(e.target.files))}
-            className="text-sm text-[#171511]"
-          />
+       <div className="flex items-center gap-3">
+  <input
+    type="file"
+    accept="image/*"
+    multiple
+    onChange={(e) => setArquivos(Array.from(e.target.files))}
+    className="
+      text-sm text-[#8e8980]
+      file:mr-3 file:px-4 file:py-2
+      file:rounded-md file:border-0
+      file:bg-[#171511] file:text-[#e2dacc]
+      file:text-sm file:font-medium
+      file:cursor-pointer
+      cursor-pointer
+    "
+  />
 
-          <Button
-            type="button"
-            fullWidth={false}
-            onClick={handleEnviarImagens}
-            disabled={arquivos.length === 0 || enviandoImagens}
-          >
-            <span className="inline-flex items-center gap-2">
-              <ImagePlus size={16} />
-              {enviandoImagens ? 'Enviando...' : 'Enviar'}
-            </span>
-          </Button>
-        </div>
+  <Button
+    type="button"
+    fullWidth={false}
+    onClick={handleEnviarImagens}
+    disabled={arquivos.length === 0 || enviandoImagens}
+  >
+    <span className="inline-flex items-center gap-2">
+      <ImagePlus size={16} />
+      {enviandoImagens ? 'Enviando...' : 'Enviar'}
+    </span>
+  </Button>
+</div>
       </div>
     </Modal>
   );

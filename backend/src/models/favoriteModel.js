@@ -20,11 +20,33 @@ async function removerFavorito(usuarioId, produtoId) {
 
 async function listarFavoritosPorUsuario(usuarioId) {
   const result = await pool.query(
-    `SELECT p.* FROM favorito f
-     JOIN produto p ON p.id = f.produto_id
-     WHERE f.usuario_id = $1`,
+    `
+      SELECT
+        p.*,
+        COALESCE(
+          (
+            SELECT json_agg(
+              json_build_object(
+                'id', pi.id,
+                'produto_id', pi.produto_id,
+                'url', pi.url,
+                'ordem', pi.ordem
+              )
+              ORDER BY pi.ordem
+            )
+            FROM produto_imagem pi
+            WHERE pi.produto_id = p.id
+          ),
+          '[]'::json
+        ) AS imagens
+      FROM favorito f
+      JOIN produto p
+        ON p.id = f.produto_id
+      WHERE f.usuario_id = $1
+    `,
     [usuarioId]
   );
+
   return result.rows;
 }
 

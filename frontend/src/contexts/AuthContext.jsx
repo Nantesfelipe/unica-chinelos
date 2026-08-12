@@ -1,5 +1,8 @@
 import { createContext, useEffect, useState } from 'react';
-import { login as loginService } from '../services/auth.service';
+import {
+  login as loginService,
+  obterUsuarioAtual
+} from '../services/auth.service';
 
 export const AuthContext = createContext();
 
@@ -8,14 +11,34 @@ function AuthProvider({ children }) {
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    const usuarioSalvo = localStorage.getItem('usuario');
+  async function validarSessao() {
+    const token = localStorage.getItem('token');
 
-    if (usuarioSalvo) {
-      setUsuario(JSON.parse(usuarioSalvo));
+    if (!token) {
+      setCarregando(false);
+      return;
     }
 
-    setCarregando(false);
-  }, []);
+    try {
+      const usuarioAtual = await obterUsuarioAtual();
+
+      localStorage.setItem(
+        'usuario',
+        JSON.stringify(usuarioAtual)
+      );
+
+      setUsuario(usuarioAtual);
+    } catch (error) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('usuario');
+      setUsuario(null);
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  validarSessao();
+}, []);
 
   async function login(email, senha) {
     const resposta = await loginService({ email, senha });

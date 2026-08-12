@@ -107,24 +107,37 @@ function Produto() {
     }
   }
 
-  function adicionarProduto() {
-    setErroCarrinho('');
+function adicionarProduto() {
+  setErroCarrinho('');
 
-    if (!variacaoSelecionada) {
-      setErroCarrinho('Selecione uma variação antes de adicionar ao carrinho.');
-      return;
-    }
-
-    if (variacaoSelecionada.estoque === 0) {
-      setErroCarrinho('Essa variação está sem estoque.');
-      return;
-    }
-
-    adicionarAoCarrinho(produto, variacaoSelecionada);
-    setAdicionado(true);
-
-    setTimeout(() => setAdicionado(false), 2000);
+  if (!variacaoSelecionada) {
+    setErroCarrinho(
+      'Selecione uma variação antes de adicionar ao carrinho.'
+    );
+    return;
   }
+
+  if (variacaoSelecionada.estoque === 0) {
+    setErroCarrinho(
+      'Essa variação está sem estoque.'
+    );
+    return;
+  }
+
+  adicionarAoCarrinho(
+    {
+      ...produto,
+      imagens,
+    },
+    variacaoSelecionada
+  );
+
+  setAdicionado(true);
+
+  setTimeout(() => {
+    setAdicionado(false);
+  }, 2000);
+}
 
   if (carregando) {
     return (
@@ -171,27 +184,45 @@ function Produto() {
 
           {variacoes.length > 0 && (
             <div className="mt-8">
-              <h2 className="font-medium text-[#171511] mb-3">Variações</h2>
+              <h2 className="font-medium text-[#171511] mb-3">Tamanho</h2>
 
               <div className="flex flex-wrap gap-2">
                 {variacoes.map((variacao) => {
-                  const selecionada = variacaoSelecionada?.id === variacao.id;
-                  const semEstoque = variacao.estoque === 0;
+                  const selecionada =
+                    variacaoSelecionada?.id === variacao.id;
+
+                  const semEstoque =
+                    Number(variacao.estoque) <= 0;
 
                   return (
                     <button
                       key={variacao.id}
                       type="button"
                       disabled={semEstoque}
-                      onClick={() => setVariacaoSelecionada(variacao)}
-                      className={`border rounded-md px-4 py-2 text-sm transition-colors ${
-                        selecionada
+                      onClick={() =>
+                        setVariacaoSelecionada(variacao)
+                      }
+                      className={`
+        border rounded-md px-5 py-3 text-sm transition-colors
+        ${selecionada
                           ? 'border-[#746c5c] text-[#171511] bg-[#e2dacc]'
                           : 'border-[#8e8980]/40 text-[#171511] hover:border-[#746c5c]'
-                      } ${semEstoque ? 'opacity-40 cursor-not-allowed line-through' : ''}`}
+                        }
+        ${semEstoque
+                          ? 'opacity-40 cursor-not-allowed line-through'
+                          : ''
+                        }
+      `}
                     >
-                      {variacao.cor || ''} {variacao.tamanho || ''}
-                      {!variacao.cor && !variacao.tamanho && `Variação ${variacao.id}`}
+                      <span className="font-medium">
+                        {variacao.tamanho || `Variação ${variacao.id}`}
+                      </span>
+
+                      {variacao.cor && (
+                        <span className="block text-xs text-[#8e8980] mt-1">
+                          {variacao.cor}
+                        </span>
+                      )}
                     </button>
                   );
                 })}

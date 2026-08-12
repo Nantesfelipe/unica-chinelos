@@ -5,6 +5,7 @@ const {
   finalizar,
   atualizarStatus,
   meusPedidos,
+  todosPedidos,
   detalhesPedido
 } = require('../controllers/orderController');
 
@@ -57,6 +58,8 @@ router.post('/', autenticar, finalizar);
  *         description: Erro interno do servidor.
  */
 router.get('/', autenticar, meusPedidos);
+
+router.get('/admin', autenticar, apenasAdmin, todosPedidos);
 
 /**
  * @swagger

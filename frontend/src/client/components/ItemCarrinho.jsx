@@ -72,8 +72,17 @@ function ItemCarrinho({
         <button
           type="button"
           onClick={onAumentar}
-          title="Aumentar quantidade"
-          className="text-[#746c5c] hover:text-[#171511]"
+          disabled={
+            Number.isFinite(Number(item.estoque)) &&
+            item.quantidade >= Number(item.estoque)
+          }
+          title={
+            Number.isFinite(Number(item.estoque)) &&
+              item.quantidade >= Number(item.estoque)
+              ? 'Quantidade máxima disponível'
+              : 'Aumentar quantidade'
+          }
+          className="text-[#746c5c] hover:text-[#171511] disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <Plus size={15} />
         </button>

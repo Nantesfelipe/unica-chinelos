@@ -10,6 +10,9 @@ import Loading from '../../components/Loading';
 
 import formatCurrency from '../../utils/formatCurrency';
 
+import { ORDER_STATUS_LABELS } from '../../utils/constants';
+
+
 function MeusPedidos() {
   const { autenticado } = useAuth();
 
@@ -100,7 +103,7 @@ function MeusPedidos() {
                   </p>
 
                   <p className="text-sm text-[#8e8980] mt-1 capitalize">
-                    Status: {pedido.status?.replace('_', ' ')}
+                    Status: {ORDER_STATUS_LABELS[pedido.status] || pedido.status}
                   </p>
                 </div>
 

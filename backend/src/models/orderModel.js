@@ -64,21 +64,184 @@ async function listarPedidosPorUsuario(usuarioId) {
   return result.rows;
 }
 
-async function buscarPedidoComItens(pedidoId) {
-  const pedidoResult = await pool.query('SELECT * FROM pedido WHERE id = $1', [pedidoId]);
-  const pedido = pedidoResult.rows[0];
-  if (!pedido) return null;
+async function criarPedidoComItens({ usuarioId, formaPagamento, itens }) {
+  const client = await pool.connect();
 
-  const itensResult = await pool.query(
-    `SELECT ip.*, v.cor, v.tamanho, p.nome
-     FROM item_pedido ip
-     JOIN variacao v ON v.id = ip.variacao_id
-     JOIN produto p ON p.id = v.produto_id
-     WHERE ip.pedido_id = $1`,
-    [pedidoId]
+  try {
+    await client.query('BEGIN');
+
+    const itensAgrupados = new Map();
+
+    for (const item of itens) {
+      const variacaoId = Number(item.variacaoId);
+      const quantidade = Number(item.quantidade);
+
+      const quantidadeAtual =
+        itensAgrupados.get(variacaoId) || 0;
+
+      itensAgrupados.set(
+        variacaoId,
+        quantidadeAtual + quantidade
+      );
+    }
+
+    const itensComPreco = [];
+    let valorTotal = 0;
+
+    for (const [variacaoId, quantidade] of itensAgrupados) {
+      const variacaoResult = await client.query(
+        `SELECT
+           v.id,
+           v.estoque,
+           p.preco
+         FROM variacao v
+         JOIN produto p ON p.id = v.produto_id
+         WHERE v.id = $1
+         FOR UPDATE OF v`,
+        [variacaoId]
+      );
+
+      const variacao = variacaoResult.rows[0];
+
+      if (!variacao) {
+        const erro = new Error(
+          `Variação ${variacaoId} não encontrada.`
+        );
+        erro.code = 'VARIATION_NOT_FOUND';
+        throw erro;
+      }
+
+      if (Number(variacao.estoque) < quantidade) {
+        const erro = new Error(
+          `Estoque insuficiente para a variação ${variacaoId}.`
+        );
+        erro.code = 'INSUFFICIENT_STOCK';
+        throw erro;
+      }
+
+      const preco = Number(variacao.preco);
+
+      itensComPreco.push({
+        variacaoId,
+        quantidade,
+        preco
+      });
+
+      valorTotal += preco * quantidade;
+    }
+
+    const pedidoResult = await client.query(
+      `INSERT INTO pedido (
+        usuario_id,
+        forma_pagamento,
+        valor_total
+      )
+      VALUES ($1, $2, $3)
+      RETURNING *`,
+      [
+        usuarioId,
+        formaPagamento,
+        valorTotal
+      ]
+    );
+
+    const pedido = pedidoResult.rows[0];
+
+    for (const item of itensComPreco) {
+      await client.query(
+        `INSERT INTO item_pedido (
+          pedido_id,
+          variacao_id,
+          quantidade,
+          preco_unitario
+        )
+        VALUES ($1, $2, $3, $4)`,
+        [
+          pedido.id,
+          item.variacaoId,
+          item.quantidade,
+          item.preco
+        ]
+      );
+
+      const estoqueResult = await client.query(
+        `UPDATE variacao
+         SET estoque = estoque - $1
+         WHERE id = $2
+           AND estoque >= $1
+         RETURNING id`,
+        [
+          item.quantidade,
+          item.variacaoId
+        ]
+      );
+
+      if (estoqueResult.rowCount === 0) {
+        const erro = new Error(
+          `Estoque insuficiente para a variação ${item.variacaoId}.`
+        );
+
+        erro.code = 'INSUFFICIENT_STOCK';
+
+        throw erro;
+      }
+    }
+
+    await client.query('COMMIT');
+
+    return pedido;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+async function listarTodosPedidos() {
+  const result = await pool.query(
+    `SELECT
+       p.*,
+       u.nome AS usuario_nome,
+       u.email AS usuario_email
+     FROM pedido p
+     JOIN usuario u ON u.id = p.usuario_id
+     ORDER BY p.created_at DESC`
   );
 
-  return { ...pedido, itens: itensResult.rows };
+  return result.rows;
+}
+async function buscarPedidoComItens(id) {
+  const pedidoResult = await pool.query(
+    `SELECT
+       p.*,
+       COALESCE(
+         json_agg(
+           json_build_object(
+             'id', ip.id,
+             'variacao_id', ip.variacao_id,
+             'quantidade', ip.quantidade,
+             'preco_unitario', ip.preco_unitario,
+             'produto', pr.nome,
+             'cor', v.cor,
+             'tamanho', v.tamanho
+           )
+         ) FILTER (WHERE ip.id IS NOT NULL),
+         '[]'
+       ) AS itens
+     FROM pedido p
+     LEFT JOIN item_pedido ip
+       ON ip.pedido_id = p.id
+     LEFT JOIN variacao v
+       ON v.id = ip.variacao_id
+     LEFT JOIN produto pr
+       ON pr.id = v.produto_id
+     WHERE p.id = $1
+     GROUP BY p.id`,
+    [id]
+  );
+
+  return pedidoResult.rows[0];
 }
 
 module.exports = {
@@ -86,5 +249,6 @@ module.exports = {
   criarPedidoComItens,
   atualizarStatusPedido,
   listarPedidosPorUsuario,
+  listarTodosPedidos,
   buscarPedidoComItens
 };

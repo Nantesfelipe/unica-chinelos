@@ -15,7 +15,7 @@ function CardProduto({ produto }) {
       to={`/produto/${produto.id}`}
       className="group block bg-white border border-[#8e8980]/25 rounded-lg overflow-hidden hover:border-[#746c5c] transition-colors"
     >
-      <div className="h-64 bg-[#e2dacc] overflow-hidden flex items-center justify-center">
+      <div className="relative h-64 bg-[#e2dacc] overflow-hidden flex items-center justify-center">
         {imagem ? (
           <img
             src={imagem}
@@ -27,6 +27,12 @@ function CardProduto({ produto }) {
             size={30}
             className="text-[#8e8980]"
           />
+        )}
+
+        {produto?.promocao && (
+          <span className="absolute top-3 left-3 px-3 py-1 rounded-full bg-[#b94618] text-[#e2dacc] text-xs font-semibold uppercase tracking-wide shadow-sm">
+            Promoção
+          </span>
         )}
       </div>
 

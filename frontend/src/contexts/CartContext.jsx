@@ -19,9 +19,10 @@ function CartProvider({ children }) {
     }
 
     const imagem =
-      produto?.imagem ||
-      produto?.imagem_url ||
-      produto?.imagens?.[0]?.url;
+  produto?.imagem ||
+  produto?.imagem_url ||
+  produto?.imagemUrl ||
+  produto?.imagens?.[0]?.url;
 
     setCarrinho((carrinhoAtual) => {
       const itemExistente = carrinhoAtual.find(
@@ -29,27 +30,40 @@ function CartProvider({ children }) {
       );
 
       if (itemExistente) {
+        if (
+          Number.isFinite(Number(variacao.estoque)) &&
+          itemExistente.quantidade >= Number(variacao.estoque)
+        ) {
+          return carrinhoAtual;
+        }
+
         return carrinhoAtual.map((item) =>
           item.id === variacao.id
-            ? { ...item, quantidade: item.quantidade + 1 }
+            ? {
+              ...item,
+              quantidade: item.quantidade + 1,
+              estoque: variacao.estoque,
+            }
             : item
         );
       }
 
       return [
-        ...carrinhoAtual,
-        {
-          id: variacao.id,
-          produtoId: produto.id,
-          variacaoId: variacao.id,
-          nome: produto.nome,
-          preco: produto.preco,
-          cor: variacao.cor,
-          tamanho: variacao.tamanho,
-          imagem,
-          quantidade: 1,
-        },
-      ];
+  ...carrinhoAtual,
+  {
+    id: variacao.id,
+    produtoId: produto.id,
+    variacaoId: variacao.id,
+    nome: produto.nome,
+    preco: produto.preco,
+    cor: variacao.cor,
+    tamanho: variacao.tamanho,
+    imagem,
+    imagens: produto?.imagens || [],
+    quantidade: 1,
+    estoque: Number(variacao.estoque),
+  },
+];
     });
   }
 
@@ -61,11 +75,23 @@ function CartProvider({ children }) {
 
   function aumentarQuantidade(id) {
     setCarrinho((carrinhoAtual) =>
-      carrinhoAtual.map((item) =>
-        item.id === id
-          ? { ...item, quantidade: item.quantidade + 1 }
-          : item
-      )
+      carrinhoAtual.map((item) => {
+        if (item.id !== id) {
+          return item;
+        }
+
+        if (
+          Number.isFinite(Number(item.estoque)) &&
+          item.quantidade >= Number(item.estoque)
+        ) {
+          return item;
+        }
+
+        return {
+          ...item,
+          quantidade: item.quantidade + 1,
+        };
+      })
     );
   }
 

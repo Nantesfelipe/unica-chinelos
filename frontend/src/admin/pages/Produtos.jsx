@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 
+
 import {
   listarProdutos,
   criarProduto,
   atualizarProduto,
   excluirProduto,
   reativarProduto,
+  criarVariacao,
 } from '../../services/product.service';
 import { listarCategorias } from '../../services/category.service';
+import { listarTiposProduto } from '../../services/productType.service';
 
 import TabelaProdutos from '../components/TabelaProdutos';
 import ModalProduto from '../components/ModalProduto';
@@ -20,6 +23,7 @@ import Loading from '../../components/Loading';
 function Produtos() {
   const [produtos, setProdutos] = useState([]);
   const [categorias, setCategorias] = useState([]);
+  const [tiposProduto, setTiposProduto] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
 
@@ -32,12 +36,22 @@ function Produtos() {
   async function carregarDados() {
     setCarregando(true);
     try {
-      const [dadosProdutos, dadosCategorias] = await Promise.all([
+      const [
+        dadosProdutos,
+        dadosCategorias,
+        dadosTiposProduto,
+      ] = await Promise.all([
         listarProdutos({ incluirInativos: true }),
         listarCategorias(),
+        listarTiposProduto(),
       ]);
       setProdutos(Array.isArray(dadosProdutos) ? dadosProdutos : []);
       setCategorias(Array.isArray(dadosCategorias) ? dadosCategorias : []);
+      setTiposProduto(
+        Array.isArray(dadosTiposProduto)
+          ? dadosTiposProduto
+          : []
+      );
     } catch (error) {
       setErro(error.message);
     } finally {
@@ -64,17 +78,49 @@ function Produtos() {
     setModalMidiaAberto(true);
   }
 
-  async function handleSalvar(dados) {
-    if (produtoEditando) {
-      await atualizarProduto(produtoEditando.id, dados);
-    } else {
-      await criarProduto(dados);
-    }
+ async function handleSalvar(dados) {
+  if (produtoEditando) {
+    await atualizarProduto(
+      produtoEditando.id,
+      {
+        nome: dados.nome,
+        descricao: dados.descricao,
+        preco: dados.preco,
+        categoriaId: dados.categoriaId,
+        tipoProdutoId: dados.tipoProdutoId,
+        destaque: dados.destaque,
+        promocao: dados.promocao,
+      }
+    );
 
     setModalAberto(false);
     await carregarDados();
+
+    return;
   }
 
+  const produtoCriado = await criarProduto({
+    nome: dados.nome,
+    descricao: dados.descricao,
+    preco: dados.preco,
+    categoriaId: dados.categoriaId,
+    tipoProdutoId: dados.tipoProdutoId,
+    destaque: dados.destaque,
+    promocao: dados.promocao,
+  });
+
+  if (Array.isArray(dados.variacoes)) {
+    for (const variacao of dados.variacoes) {
+      await criarVariacao(
+        produtoCriado.id,
+        variacao
+      );
+    }
+  }
+
+  setModalAberto(false);
+  await carregarDados();
+}
   async function handleDesativar(produto) {
     if (!confirm(`Desativar "${produto.nome}"? Ele deixará de aparecer na loja.`)) {
       return;
@@ -96,18 +142,18 @@ function Produtos() {
       alert(error.message);
     }
   }
-async function handleExcluirDefinitivo(produto) {
-  if (!confirm(`Excluir "${produto.nome}" definitivamente? Essa ação não pode ser desfeita.`)) {
-    return;
-  }
+  async function handleExcluirDefinitivo(produto) {
+    if (!confirm(`Excluir "${produto.nome}" definitivamente? Essa ação não pode ser desfeita.`)) {
+      return;
+    }
 
-  try {
-    await excluirProdutoDefinitivo(produto.id);
-    await carregarDados();
-  } catch (error) {
-    alert(error.message);
+    try {
+      await excluirProdutoDefinitivo(produto.id);
+      await carregarDados();
+    } catch (error) {
+      alert(error.message);
+    }
   }
-}
   if (carregando) {
     return <Loading text="Carregando produtos..." />;
   }
@@ -146,6 +192,7 @@ async function handleExcluirDefinitivo(produto) {
         onSalvar={handleSalvar}
         produtoEditando={produtoEditando}
         categorias={categorias}
+        tiposProduto={tiposProduto}
       />
 
       <ModalVariacoesImagens
@@ -153,7 +200,7 @@ async function handleExcluirDefinitivo(produto) {
         onFechar={() => setModalMidiaAberto(false)}
         produto={produtoMidia}
       />
-   
+
 
     </div>
   );

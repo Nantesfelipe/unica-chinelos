@@ -6,17 +6,33 @@ const {
   atualizarProduto,
   desativarProduto,
   reativarProduto,
-   excluirProduto,
+  excluirProduto,
 } = require('../models/productModel');
 async function criar(req, res) {
   try {
-    const { nome, descricao, preco, categoriaId, destaque, promocao } = req.body;
+    const {
+      nome,
+      descricao,
+      preco,
+      categoriaId,
+      tipoProdutoId,
+      destaque,
+      promocao,
+    } = req.body;
 
-    if (!nome || !preco || !categoriaId) {
+    if (!nome || !preco || !categoriaId || !tipoProdutoId) {
       return res.status(400).json({ erro: 'Nome, preço e categoria são obrigatórios.' });
     }
 
-    const produto = await criarProduto({ nome, descricao, preco, categoriaId, destaque, promocao });
+    const produto = await criarProduto({
+      nome,
+      descricao,
+      preco,
+      categoriaId,
+      tipoProdutoId,
+      destaque,
+      promocao,
+    });
     res.status(201).json(produto);
   } catch (err) {
     res.status(500).json({ erro: err.message });
@@ -51,8 +67,27 @@ async function buscarPorId(req, res) {
 
 async function atualizar(req, res) {
   try {
-    const { nome, descricao, preco, categoriaId, destaque, promocao } = req.body;
-    const produto = await atualizarProduto(req.params.id, { nome, descricao, preco, categoriaId, destaque, promocao });
+    const {
+      nome,
+      descricao,
+      preco,
+      categoriaId,
+      tipoProdutoId,
+      destaque,
+      promocao,
+    } = req.body;
+    const produto = await atualizarProduto(
+      req.params.id,
+      {
+        nome,
+        descricao,
+        preco,
+        categoriaId,
+        tipoProdutoId,
+        destaque,
+        promocao,
+      }
+    );
     if (!produto) {
       return res.status(404).json({ erro: 'Produto não encontrado.' });
     }
@@ -98,6 +133,6 @@ async function excluirDefinitivo(req, res) {
     res.status(500).json({ erro: err.message });
   }
 
-  
+
 }
 module.exports = { criar, listar, buscarPorId, atualizar, desativar, reativar, excluirDefinitivo };

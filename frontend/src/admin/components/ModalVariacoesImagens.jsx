@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Plus, ImagePlus } from 'lucide-react';
+import {
+  Plus,
+  ImagePlus,
+  PackagePlus
+} from 'lucide-react';
 
 import {
   listarVariacoes,
   criarVariacao,
+  adicionarEstoque,
   listarImagens,
   enviarImagens,
 } from '../../services/product.service';
@@ -21,6 +26,9 @@ function ModalVariacoesImagens({ aberto, onFechar, produto }) {
 
   const [formVariacao, setFormVariacao] = useState(VARIACAO_VAZIA);
   const [salvandoVariacao, setSalvandoVariacao] = useState(false);
+
+  const [entradasEstoque, setEntradasEstoque] = useState({});
+  const [salvandoEstoque, setSalvandoEstoque] = useState(null);
 
   const [arquivos, setArquivos] = useState([]);
   const [enviandoImagens, setEnviandoImagens] = useState(false);
@@ -54,31 +62,62 @@ function ModalVariacoesImagens({ aberto, onFechar, produto }) {
     }
   }, [aberto, produto]);
 
-  async function handleAdicionarVariacao(event) {
-    event.preventDefault();
-    setErro('');
+ async function handleAdicionarVariacao(event) {
+  event.preventDefault();
+  setErro('');
 
-    if (!formVariacao.cor && !formVariacao.tamanho) {
-      setErro('Informe cor e/ou tamanho da variação.');
-      return;
-    }
-
-    setSalvandoVariacao(true);
-    try {
-      await criarVariacao(produto.id, {
-        cor: formVariacao.cor,
-        tamanho: formVariacao.tamanho,
-        estoque: Number(formVariacao.estoque) || 0,
-      });
-      setFormVariacao(VARIACAO_VAZIA);
-      await carregar();
-    } catch (error) {
-      setErro(error.message);
-    } finally {
-      setSalvandoVariacao(false);
-    }
+  if (!formVariacao.cor && !formVariacao.tamanho) {
+    setErro('Informe cor e/ou tamanho da variação.');
+    return;
   }
 
+  setSalvandoVariacao(true);
+  try {
+    await criarVariacao(produto.id, {
+      cor: formVariacao.cor,
+      tamanho: formVariacao.tamanho,
+      estoque: Number(formVariacao.estoque) || 0,
+    });
+
+    setFormVariacao(VARIACAO_VAZIA);
+    await carregar();
+  } catch (error) {
+    setErro(error.message);
+  } finally {
+    setSalvandoVariacao(false);
+  }
+}
+
+  async function handleEntradaEstoque(variacaoId) {
+  const quantidade = Number(entradasEstoque[variacaoId]);
+
+  if (!Number.isInteger(quantidade) || quantidade <= 0) {
+    setErro('Informe uma quantidade válida para entrada de estoque.');
+    return;
+  }
+
+  setErro('');
+  setSalvandoEstoque(variacaoId);
+
+  try {
+    await adicionarEstoque(
+      produto.id,
+      variacaoId,
+      quantidade
+    );
+
+    setEntradasEstoque((atual) => ({
+      ...atual,
+      [variacaoId]: ''
+    }));
+
+    await carregar();
+  } catch (error) {
+    setErro(error.message);
+  } finally {
+    setSalvandoEstoque(null);
+  }
+}
   async function handleEnviarImagens() {
     if (arquivos.length === 0) return;
 
@@ -120,16 +159,67 @@ function ModalVariacoesImagens({ aberto, onFechar, produto }) {
         ) : variacoes.length === 0 ? (
           <p className="text-sm text-[#8e8980] mb-4">Nenhuma variação cadastrada ainda.</p>
         ) : (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {variacoes.map((v) => (
-              <span
-                key={v.id}
-                className="border border-[#8e8980]/40 rounded-md px-3 py-1.5 text-sm text-[#171511]"
-              >
-                {[v.cor, v.tamanho].filter(Boolean).join(' · ')} — estoque: {v.estoque}
-              </span>
-            ))}
-          </div>
+
+
+          <div className="border border-[#8e8980]/30 rounded-lg overflow-hidden mb-5">
+  <div className="grid grid-cols-[1fr_1fr_100px_180px] gap-3 bg-[#e2dacc] px-4 py-3 text-sm font-medium text-[#171511]">
+    <span>Tamanho</span>
+    <span>Cor</span>
+    <span>Estoque</span>
+    <span>Entrada</span>
+  </div>
+
+  <div className="divide-y divide-[#8e8980]/20">
+    {variacoes.map((v) => (
+      <div
+        key={v.id}
+        className="grid grid-cols-[1fr_1fr_100px_180px] gap-3 items-center px-4 py-3"
+      >
+        <span className="text-sm text-[#171511]">
+          {v.tamanho || '—'}
+        </span>
+
+        <span className="text-sm text-[#171511]">
+          {v.cor || '—'}
+        </span>
+
+        <span className="text-sm font-medium text-[#171511]">
+          {v.estoque}
+        </span>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min="1"
+            value={entradasEstoque[v.id] ?? ''}
+            onChange={(e) =>
+              setEntradasEstoque((atual) => ({
+                ...atual,
+                [v.id]: e.target.value
+              }))
+            }
+            placeholder="+"
+            className="w-20 px-3 py-2 rounded-md border border-[#8e8980]/40 bg-white text-[#171511] outline-none focus:border-[#746c5c]"
+          />
+
+          <button
+            type="button"
+            onClick={() => handleEntradaEstoque(v.id)}
+            disabled={salvandoEstoque === v.id}
+            className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-md bg-[#746c5c] text-white text-sm hover:opacity-90 disabled:opacity-50"
+          >
+            <PackagePlus size={15} />
+
+            {salvandoEstoque === v.id
+              ? '...'
+              : 'Adicionar'}
+          </button>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+
         )}
 
         <form onSubmit={handleAdicionarVariacao} className="grid grid-cols-3 gap-3 items-end">
@@ -146,12 +236,20 @@ function ModalVariacoesImagens({ aberto, onFechar, produto }) {
             onChange={(e) => setFormVariacao((f) => ({ ...f, tamanho: e.target.value }))}
           />
           <Input
-            label="Estoque"
-            name="estoque"
-            type="number"
-            value={formVariacao.estoque}
-            onChange={(e) => setFormVariacao((f) => ({ ...f, estoque: e.target.value }))}
-          />
+  label="Estoque inicial"
+  name="estoque"
+  type="number"
+  min="0"
+  value={formVariacao.estoque}
+  onChange={(e) =>
+    setFormVariacao((f) => ({
+      ...f,
+      estoque: e.target.value
+    }))
+  }
+  required
+/>
+          
 
           <div className="col-span-3">
             <Button type="submit" fullWidth={false} disabled={salvandoVariacao}>

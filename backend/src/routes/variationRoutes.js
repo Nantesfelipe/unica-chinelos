@@ -1,7 +1,11 @@
 const express = require('express');
 
 const router = express.Router({ mergeParams: true });
-const { criar, listar } = require('../controllers/variationController');
+const {
+  criar,
+  listar,
+  entradaEstoque
+} = require('../controllers/variationController');
 const { autenticar, apenasAdmin } = require('../middlewares/authMiddleware');
 
 /**
@@ -28,6 +32,8 @@ const { autenticar, apenasAdmin } = require('../middlewares/authMiddleware');
  *         description: Erro interno do servidor.
  */
 router.get('/', listar);
+
+
 
 /**
  * @swagger
@@ -67,5 +73,12 @@ router.get('/', listar);
  *         description: Erro interno do servidor.
  */
 router.post('/', autenticar, apenasAdmin, criar);
+
+router.patch(
+  '/:variacaoId/estoque',
+  autenticar,
+  apenasAdmin,
+  entradaEstoque
+);
 
 module.exports = router;

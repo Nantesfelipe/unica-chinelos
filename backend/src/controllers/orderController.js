@@ -3,6 +3,7 @@ const {
   criarPedidoComItens,
   atualizarStatusPedido,
   listarPedidosPorUsuario,
+  listarTodosPedidos,
   buscarPedidoComItens
 } = require('../models/orderModel');
 
@@ -10,42 +11,43 @@ async function finalizar(req, res) {
   try {
     const { itens, formaPagamento } = req.body;
 
-    if (!itens || itens.length === 0) {
-      return res.status(400).json({ erro: 'O pedido precisa ter ao menos um item.' });
+    if (!Array.isArray(itens) || itens.length === 0) {
+      return res.status(400).json({
+        erro: 'O pedido precisa ter ao menos um item.'
+      });
     }
 
-    const itensComPreco = [];
-    let valorTotal = 0;
-
     for (const item of itens) {
-      const variacao = await buscarVariacaoComPreco(item.variacaoId);
-
-      if (!variacao) {
-        return res.status(404).json({ erro: `Variação ${item.variacaoId} não encontrada.` });
+      if (
+        !Number.isInteger(Number(item.variacaoId)) ||
+        !Number.isInteger(Number(item.quantidade)) ||
+        Number(item.quantidade) <= 0
+      ) {
+        return res.status(400).json({
+          erro: 'Cada item deve possuir uma variação válida e uma quantidade maior que zero.'
+        });
       }
-
-      if (variacao.estoque < item.quantidade) {
-        return res.status(400).json({ erro: `Estoque insuficiente para a variação ${item.variacaoId}.` });
-      }
-
-      const preco = parseFloat(variacao.preco);
-      itensComPreco.push({ variacaoId: item.variacaoId, quantidade: item.quantidade, preco });
-      valorTotal += preco * item.quantidade;
     }
 
     const pedido = await criarPedidoComItens({
       usuarioId: req.usuario.id,
       formaPagamento,
-      itensComPreco,
-      valorTotal
+      itens
     });
 
     res.status(201).json(pedido);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    if (err.code === 'INSUFFICIENT_STOCK') {
+      return res.status(400).json({
+        erro: err.message
+      });
+    }
+
+    res.status(500).json({
+      erro: err.message
+    });
   }
 }
-
 const STATUS_VALIDOS = ['recebido', 'em_separacao', 'enviado', 'entregue', 'cancelado'];
 
 async function atualizarStatus(req, res) {
@@ -93,5 +95,19 @@ async function detalhesPedido(req, res) {
   }
 }
 
-module.exports = { finalizar, atualizarStatus, meusPedidos, detalhesPedido };
+async function todosPedidos(req, res) {
+  try {
+    const pedidos = await listarTodosPedidos();
+    res.json(pedidos);
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+}
 
+module.exports = {
+  finalizar,
+  atualizarStatus,
+  meusPedidos,
+  todosPedidos,
+  detalhesPedido
+};

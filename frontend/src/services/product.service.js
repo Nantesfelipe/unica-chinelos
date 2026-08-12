@@ -45,6 +45,18 @@ export function criarVariacao(produtoId, dados) {
   });
 }
 
+export function adicionarEstoque(produtoId, variacaoId, quantidade) {
+  return api(
+    `/products/${produtoId}/variations/${variacaoId}/estoque`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        quantidade: Number(quantidade),
+      }),
+    }
+  );
+}
+
 
 // Imagens
 export function reativarProduto(id) {

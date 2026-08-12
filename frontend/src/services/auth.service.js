@@ -13,3 +13,7 @@ export function login(dados) {
     body: JSON.stringify(dados),
   });
 }
+
+export function obterUsuarioAtual() {
+  return api('/auth/me');
+}

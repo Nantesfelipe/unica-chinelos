@@ -1,6 +1,10 @@
 const bcrypt = require('bcrypt'); //importa a biblioteca gerar hash e comparar senha
 const jwt = require('jsonwebtoken');
-const { criarUsuario, buscarPorEmail } = require('../models/userModel');
+const {
+  criarUsuario,
+  buscarPorEmail,
+  buscarPorId
+} = require('../models/userModel');
 
 
 async function cadastrar(req, res) {
@@ -73,4 +77,31 @@ async function login (req, res){
   }
 
 }
-module.exports = { cadastrar, login };
+
+async function usuarioAtual(req, res) {
+  try {
+    const usuario = await buscarPorId(req.usuario.id);
+
+    if (!usuario) {
+      return res.status(404).json({
+        erro: 'Usuário não encontrado.'
+      });
+    }
+
+    res.json({
+      id: usuario.id,
+      nome: usuario.nome,
+      email: usuario.email,
+      tipo: usuario.tipo
+    });
+  } catch (err) {
+    res.status(500).json({
+      erro: err.message
+    });
+  }
+}
+module.exports = {
+  cadastrar,
+  login,
+  usuarioAtual
+};

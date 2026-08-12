@@ -3,7 +3,8 @@ import { Package, ShoppingBag, Users, Tags } from 'lucide-react';
 
 import { listarProdutos } from '../../services/product.service';
 import { listarCategorias } from '../../services/category.service';
-import { listarPedidos } from '../../services/order.service';
+import { listarTodosPedidos } from '../../services/order.service';
+import { ORDER_STATUS_LABELS } from '../../utils/constants';
 
 import Loading from '../../components/Loading';
 
@@ -26,7 +27,11 @@ function Dashboard() {
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    Promise.all([listarProdutos(), listarCategorias(), listarPedidos()])
+    Promise.all([
+      listarProdutos({ incluirInativos: true }),
+      listarCategorias(),
+      listarTodosPedidos()
+    ])
       .then(([p, c, o]) => {
         setProdutos(Array.isArray(p) ? p : []);
         setCategorias(Array.isArray(c) ? c : []);
@@ -67,7 +72,9 @@ function Dashboard() {
             {pedidosRecentes.map((pedido) => (
               <div key={pedido.id} className="flex items-center justify-between px-5 py-3 text-sm">
                 <span className="text-[#171511]">Pedido #{pedido.id}</span>
-                <span className="text-[#8e8980] capitalize">{pedido.status?.replace('_', ' ')}</span>
+                <span className="text-[#8e8980]">
+                  {ORDER_STATUS_LABELS[pedido.status] || pedido.status}
+                </span>
               </div>
             ))}
           </div>

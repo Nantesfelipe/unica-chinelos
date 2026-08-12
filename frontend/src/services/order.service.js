@@ -21,3 +21,7 @@ export function atualizarStatusPedido(id, dados) {
     body: JSON.stringify(dados),
   });
 }
+
+export function listarTodosPedidos() {
+  return api('/orders/admin');
+}

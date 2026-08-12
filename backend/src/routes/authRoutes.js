@@ -3,7 +3,15 @@
 const express = require('express');
 
 const router = express.Router();
-const { cadastrar, login } = require('../controllers/authController');
+const {
+  cadastrar,
+  login,
+  usuarioAtual
+} = require('../controllers/authController');
+
+const {
+  autenticar
+} = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -103,5 +111,7 @@ router.post('/cadastro', cadastrar);
  *         description: Erro interno do servidor.
  */
 router.post('/login', login);
+
+router.get('/me', autenticar, usuarioAtual);
 
 module.exports = router;

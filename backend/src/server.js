@@ -6,6 +6,7 @@ const productRoutes = require('./routes/productRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const productTypeRoutes = require('./routes/productTypeRoutes');
 const cors = require('cors');
 
 
@@ -22,6 +23,7 @@ app.use('/products', productRoutes);
 app.use('/favorites', favoriteRoutes);
 app.use('/orders', orderRoutes);
 app.use('/categories', categoryRoutes);
+app.use('/product-types', productTypeRoutes);
 
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

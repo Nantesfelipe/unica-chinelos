@@ -22,5 +22,24 @@ async function buscarPorEmail(email) {
   return result.rows[0];
 }
 
-module.exports = { criarUsuario, buscarPorEmail }; // exporta as funcoes para q outros arquivos consigam usa-las
+async function buscarPorId(id) {
+  const result = await pool.query(
+    `SELECT
+       id,
+       nome,
+       email,
+       tipo,
+       created_at
+     FROM usuario
+     WHERE id = $1`,
+    [id]
+  );
+
+  return result.rows[0];
+}
+module.exports = {
+  criarUsuario,
+  buscarPorEmail,
+  buscarPorId
+}; // exporta as funcoes para q outros arquivos consigam usa-las
 

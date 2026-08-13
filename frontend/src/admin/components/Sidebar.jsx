@@ -3,16 +3,43 @@ import {
   LayoutDashboard,
   Package,
   Tags,
+  Layers,
   ShoppingBag,
   Users,
 } from 'lucide-react';
 
 const itens = [
-  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, fim: true },
-  { to: '/admin/produtos', label: 'Produtos', icon: Package },
-  { to: '/admin/categorias', label: 'Categorias', icon: Tags },
-  { to: '/admin/pedidos', label: 'Pedidos', icon: ShoppingBag },
-  { to: '/admin/clientes', label: 'Clientes', icon: Users },
+  {
+    to: '/admin',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    fim: true,
+  },
+  {
+    to: '/admin/produtos',
+    label: 'Produtos',
+    icon: Package,
+  },
+  {
+    to: '/admin/categorias',
+    label: 'Categorias',
+    icon: Tags,
+  },
+  {
+    to: '/admin/tipos-produtos',
+    label: 'Tipos de produtos',
+    icon: Layers,
+  },
+  {
+    to: '/admin/pedidos',
+    label: 'Pedidos',
+    icon: ShoppingBag,
+  },
+  {
+    to: '/admin/clientes',
+    label: 'Clientes',
+    icon: Users,
+  },
 ];
 
 function Sidebar() {

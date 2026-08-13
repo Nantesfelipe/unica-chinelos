@@ -6,6 +6,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import Dashboard from '../pages/Dashboard';
 import Produtos from '../pages/Produtos';
 import Categorias from '../pages/Categorias';
+import TiposProdutos from '../pages/TiposProdutos';
 import Pedidos from '../pages/Pedidos';
 import Clientes from '../pages/Clientes';
 
@@ -20,10 +21,31 @@ function AdminRoutes() {
       }
     >
       <Route index element={<Dashboard />} />
-      <Route path="produtos" element={<Produtos />} />
-      <Route path="categorias" element={<Categorias />} />
-      <Route path="pedidos" element={<Pedidos />} />
-      <Route path="clientes" element={<Clientes />} />
+
+      <Route
+        path="produtos"
+        element={<Produtos />}
+      />
+
+      <Route
+        path="categorias"
+        element={<Categorias />}
+      />
+
+      <Route
+        path="tipos-produtos"
+        element={<TiposProdutos />}
+      />
+
+      <Route
+        path="pedidos"
+        element={<Pedidos />}
+      />
+
+      <Route
+        path="clientes"
+        element={<Clientes />}
+      />
     </Route>
   );
 }

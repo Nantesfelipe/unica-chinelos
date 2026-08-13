@@ -10,6 +10,29 @@ const STATUS_LABELS = {
   cancelado: 'Cancelado',
 };
 
+const STATUS_OPTIONS = [
+  {
+    value: 'recebido',
+    label: 'Recebido',
+  },
+  {
+    value: 'em_separacao',
+    label: 'Em separação',
+  },
+  {
+    value: 'enviado',
+    label: 'Enviado',
+  },
+  {
+    value: 'entregue',
+    label: 'Entregue',
+  },
+  {
+    value: 'cancelado',
+    label: 'Cancelado',
+  },
+];
+
 function obterClasseStatus(status) {
   switch (status) {
     case 'entregue':
@@ -40,6 +63,8 @@ function formatarData(data) {
 function TabelaPedidos({
   pedidos,
   onSelecionar,
+  onAlterarStatus,
+  atualizandoStatusId,
 }) {
   if (pedidos.length === 0) {
     return (
@@ -87,55 +112,85 @@ function TabelaPedidos({
           </thead>
 
           <tbody className="divide-y divide-[#8e8980]/10">
-            {pedidos.map((pedido) => (
-              <tr key={pedido.id}>
-                <td className="px-5 py-4 font-medium text-[#171511]">
-                  #{pedido.id}
-                </td>
+            {pedidos.map((pedido) => {
+              const atualizando =
+                atualizandoStatusId === pedido.id;
 
-                <td className="px-5 py-4">
-                  <p className="text-[#171511] font-medium">
-                    {pedido.usuario_nome}
-                  </p>
+              return (
+                <tr key={pedido.id}>
+                  <td className="px-5 py-4 font-medium text-[#171511]">
+                    #{pedido.id}
+                  </td>
 
-                  <p className="text-xs text-[#8e8980] mt-1">
-                    {pedido.usuario_email}
-                  </p>
-                </td>
+                  <td className="px-5 py-4">
+                    <p className="text-[#171511] font-medium">
+                      {pedido.usuario_nome}
+                    </p>
 
-                <td className="px-5 py-4 text-[#8e8980]">
-                  {formatarData(pedido.created_at)}
-                </td>
+                    <p className="text-xs text-[#8e8980] mt-1">
+                      {pedido.usuario_email}
+                    </p>
+                  </td>
 
-                <td className="px-5 py-4">
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full ${obterClasseStatus(
-                      pedido.status
-                    )}`}
-                  >
-                    {STATUS_LABELS[pedido.status] ||
-                      pedido.status}
-                  </span>
-                </td>
+                  <td className="px-5 py-4 text-[#8e8980]">
+                    {formatarData(pedido.created_at)}
+                  </td>
 
-                <td className="px-5 py-4 font-medium text-[#171511]">
-                  {formatCurrency(pedido.valor_total)}
-                </td>
+                  <td className="px-5 py-4">
+                    <select
+                      value={pedido.status}
+                      onChange={(event) =>
+                        onAlterarStatus(
+                          pedido.id,
+                          event.target.value
+                        )
+                      }
+                      disabled={atualizando}
+                      className={`text-xs px-3 py-2 rounded-md border border-transparent outline-none ${obterClasseStatus(
+                        pedido.status
+                      )} ${
+                        atualizando
+                          ? 'opacity-50 cursor-not-allowed'
+                          : 'cursor-pointer'
+                      }`}
+                      title="Alterar status do pedido"
+                    >
+                      {STATUS_OPTIONS.map((status) => (
+                        <option
+                          key={status.value}
+                          value={status.value}
+                        >
+                          {status.label}
+                        </option>
+                      ))}
+                    </select>
 
-                <td className="px-5 py-4 text-right">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onSelecionar(pedido.id)
-                    }
-                    title="Ver pedido"
-                    className="text-[#746c5c] hover:text-[#171511]"
-                  >
-                    <Eye size={17} />
-                  </button>
-                </td>
-              </tr>
-            ))}
+                    {atualizando && (
+                      <span className="text-xs text-[#8e8980] ml-2">
+                        Salvando...
+                      </span>
+                    )}
+                  </td>
+
+                  <td className="px-5 py-4 font-medium text-[#171511]">
+                    {formatCurrency(pedido.valor_total)}
+                  </td>
+
+                  <td className="px-5 py-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onSelecionar(pedido.id)
+                      }
+                      title="Ver pedido"
+                      className="text-[#746c5c] hover:text-[#171511]"
+                    >
+                      <Eye size={17} />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

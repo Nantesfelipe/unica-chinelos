@@ -53,11 +53,11 @@ function Dashboard() {
     <div>
       <h1 className="text-2xl font-semibold text-[#171511] mb-6">Visão geral</h1>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-4 md:grid-cols-3 gap-4 mb-8">
         <CardResumo icon={Package} label="Produtos" valor={produtos.length} />
         <CardResumo icon={Tags} label="Categorias" valor={categorias.length} />
         <CardResumo icon={ShoppingBag} label="Pedidos" valor={pedidos.length} />
-        <CardResumo icon={Users} label="Clientes" valor="—" />
+        
       </div>
 
       <div className="bg-white rounded-lg border border-[#8e8980]/20">

@@ -35,10 +35,35 @@ async function criarProduto({
   return result.rows[0];
 }
 
-async function listarProdutos({ busca, categoriaId, tipoProdutoId, incluirInativos } = {}) {
+async function listarProdutos({
+  busca,
+  categoriaId,
+  tipoProdutoId,
+  incluirInativos,
+} = {}) {
   let query = `
     SELECT
       p.*,
+      c.nome AS categoria_nome,
+      tp.nome AS tipo_produto_nome,
+
+      COALESCE(
+        (
+          SELECT SUM(v.estoque)
+          FROM variacao v
+          WHERE v.produto_id = p.id
+        ),
+        0
+      ) AS estoque_total,
+
+      (
+        SELECT pi.url
+        FROM produto_imagem pi
+        WHERE pi.produto_id = p.id
+        ORDER BY pi.ordem
+        LIMIT 1
+      ) AS imagem_principal,
+
       COALESCE(
         (
           SELECT json_agg(
@@ -55,8 +80,16 @@ async function listarProdutos({ busca, categoriaId, tipoProdutoId, incluirInativ
         ),
         '[]'::json
       ) AS imagens
+
     FROM produto p
-    WHERE 1=1
+
+    JOIN categoria c
+      ON c.id = p.categoria_id
+
+    JOIN tipo_produto tp
+      ON tp.id = p.tipo_produto_id
+
+    WHERE 1 = 1
   `;
 
   const valores = [];
@@ -67,25 +100,36 @@ async function listarProdutos({ busca, categoriaId, tipoProdutoId, incluirInativ
 
   if (busca) {
     valores.push(`%${busca}%`);
-    query += ` AND p.nome ILIKE $${valores.length}`;
+
+    query += `
+      AND p.nome ILIKE $${valores.length}
+    `;
   }
 
   if (categoriaId) {
     valores.push(categoriaId);
-    query += ` AND p.categoria_id = $${valores.length}`;
+
+    query += `
+      AND p.categoria_id = $${valores.length}
+    `;
   }
 
   if (tipoProdutoId) {
-  valores.push(tipoProdutoId);
+    valores.push(tipoProdutoId);
+
+    query += `
+      AND p.tipo_produto_id = $${valores.length}
+    `;
+  }
 
   query += `
-    AND p.tipo_produto_id = $${valores.length}
+    ORDER BY p.created_at DESC
   `;
-}
 
-  query += ' ORDER BY p.created_at DESC';
-
-  const result = await pool.query(query, valores);
+  const result = await pool.query(
+    query,
+    valores
+  );
 
   return result.rows;
 }

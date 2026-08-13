@@ -62,62 +62,62 @@ function ModalVariacoesImagens({ aberto, onFechar, produto }) {
     }
   }, [aberto, produto]);
 
- async function handleAdicionarVariacao(event) {
-  event.preventDefault();
-  setErro('');
+  async function handleAdicionarVariacao(event) {
+    event.preventDefault();
+    setErro('');
 
-  if (!formVariacao.cor && !formVariacao.tamanho) {
-    setErro('Informe cor e/ou tamanho da variação.');
-    return;
+    if (!formVariacao.cor && !formVariacao.tamanho) {
+      setErro('Informe cor e/ou tamanho da variação.');
+      return;
+    }
+
+    setSalvandoVariacao(true);
+    try {
+      await criarVariacao(produto.id, {
+        cor: formVariacao.cor,
+        tamanho: formVariacao.tamanho,
+        estoque: Number(formVariacao.estoque) || 0,
+      });
+
+      setFormVariacao(VARIACAO_VAZIA);
+      await carregar();
+    } catch (error) {
+      setErro(error.message);
+    } finally {
+      setSalvandoVariacao(false);
+    }
   }
-
-  setSalvandoVariacao(true);
-  try {
-    await criarVariacao(produto.id, {
-      cor: formVariacao.cor,
-      tamanho: formVariacao.tamanho,
-      estoque: Number(formVariacao.estoque) || 0,
-    });
-
-    setFormVariacao(VARIACAO_VAZIA);
-    await carregar();
-  } catch (error) {
-    setErro(error.message);
-  } finally {
-    setSalvandoVariacao(false);
-  }
-}
 
   async function handleEntradaEstoque(variacaoId) {
-  const quantidade = Number(entradasEstoque[variacaoId]);
+    const quantidade = Number(entradasEstoque[variacaoId]);
 
-  if (!Number.isInteger(quantidade) || quantidade <= 0) {
-    setErro('Informe uma quantidade válida para entrada de estoque.');
-    return;
+    if (!Number.isInteger(quantidade) || quantidade <= 0) {
+      setErro('Informe uma quantidade válida para entrada de estoque.');
+      return;
+    }
+
+    setErro('');
+    setSalvandoEstoque(variacaoId);
+
+    try {
+      await adicionarEstoque(
+        produto.id,
+        variacaoId,
+        quantidade
+      );
+
+      setEntradasEstoque((atual) => ({
+        ...atual,
+        [variacaoId]: ''
+      }));
+
+      await carregar();
+    } catch (error) {
+      setErro(error.message);
+    } finally {
+      setSalvandoEstoque(null);
+    }
   }
-
-  setErro('');
-  setSalvandoEstoque(variacaoId);
-
-  try {
-    await adicionarEstoque(
-      produto.id,
-      variacaoId,
-      quantidade
-    );
-
-    setEntradasEstoque((atual) => ({
-      ...atual,
-      [variacaoId]: ''
-    }));
-
-    await carregar();
-  } catch (error) {
-    setErro(error.message);
-  } finally {
-    setSalvandoEstoque(null);
-  }
-}
   async function handleEnviarImagens() {
     if (arquivos.length === 0) return;
 
@@ -162,63 +162,63 @@ function ModalVariacoesImagens({ aberto, onFechar, produto }) {
 
 
           <div className="border border-[#8e8980]/30 rounded-lg overflow-hidden mb-5">
-  <div className="grid grid-cols-[1fr_1fr_100px_180px] gap-3 bg-[#e2dacc] px-4 py-3 text-sm font-medium text-[#171511]">
-    <span>Tamanho</span>
-    <span>Cor</span>
-    <span>Estoque</span>
-    <span>Entrada</span>
-  </div>
+            <div className="grid grid-cols-[1fr_1fr_100px_180px] gap-3 bg-[#e2dacc] px-4 py-3 text-sm font-medium text-[#171511]">
+              <span>Tamanho</span>
+              <span>Cor</span>
+              <span>Estoque</span>
+              <span>Entrada</span>
+            </div>
 
-  <div className="divide-y divide-[#8e8980]/20">
-    {variacoes.map((v) => (
-      <div
-        key={v.id}
-        className="grid grid-cols-[1fr_1fr_100px_180px] gap-3 items-center px-4 py-3"
-      >
-        <span className="text-sm text-[#171511]">
-          {v.tamanho || '—'}
-        </span>
+            <div className="divide-y divide-[#8e8980]/20">
+              {variacoes.map((v) => (
+                <div
+                  key={v.id}
+                  className="grid grid-cols-[1fr_1fr_100px_180px] gap-3 items-center px-4 py-3"
+                >
+                  <span className="text-sm text-[#171511]">
+                    {v.tamanho || '—'}
+                  </span>
 
-        <span className="text-sm text-[#171511]">
-          {v.cor || '—'}
-        </span>
+                  <span className="text-sm text-[#171511]">
+                    {v.cor || '—'}
+                  </span>
 
-        <span className="text-sm font-medium text-[#171511]">
-          {v.estoque}
-        </span>
+                  <span className="text-sm font-medium text-[#171511]">
+                    {v.estoque}
+                  </span>
 
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min="1"
-            value={entradasEstoque[v.id] ?? ''}
-            onChange={(e) =>
-              setEntradasEstoque((atual) => ({
-                ...atual,
-                [v.id]: e.target.value
-              }))
-            }
-            placeholder="+"
-            className="w-20 px-3 py-2 rounded-md border border-[#8e8980]/40 bg-white text-[#171511] outline-none focus:border-[#746c5c]"
-          />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={entradasEstoque[v.id] ?? ''}
+                      onChange={(e) =>
+                        setEntradasEstoque((atual) => ({
+                          ...atual,
+                          [v.id]: e.target.value
+                        }))
+                      }
+                      placeholder="+"
+                      className="w-20 px-3 py-2 rounded-md border border-[#8e8980]/40 bg-white text-[#171511] outline-none focus:border-[#746c5c]"
+                    />
 
-          <button
-            type="button"
-            onClick={() => handleEntradaEstoque(v.id)}
-            disabled={salvandoEstoque === v.id}
-            className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-md bg-[#746c5c] text-white text-sm hover:opacity-90 disabled:opacity-50"
-          >
-            <PackagePlus size={15} />
+                    <button
+                      type="button"
+                      onClick={() => handleEntradaEstoque(v.id)}
+                      disabled={salvandoEstoque === v.id}
+                      className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-md bg-[#746c5c] text-white text-sm hover:opacity-90 disabled:opacity-50"
+                    >
+                      <PackagePlus size={15} />
 
-            {salvandoEstoque === v.id
-              ? '...'
-              : 'Adicionar'}
-          </button>
-        </div>
-      </div>
-    ))}
-  </div>
-</div>
+                      {salvandoEstoque === v.id
+                        ? '...'
+                        : 'Adicionar'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
         )}
 
@@ -236,20 +236,20 @@ function ModalVariacoesImagens({ aberto, onFechar, produto }) {
             onChange={(e) => setFormVariacao((f) => ({ ...f, tamanho: e.target.value }))}
           />
           <Input
-  label="Estoque inicial"
-  name="estoque"
-  type="number"
-  min="0"
-  value={formVariacao.estoque}
-  onChange={(e) =>
-    setFormVariacao((f) => ({
-      ...f,
-      estoque: e.target.value
-    }))
-  }
-  required
-/>
-          
+            label="Estoque inicial"
+            name="estoque"
+            type="number"
+            min="0"
+            value={formVariacao.estoque}
+            onChange={(e) =>
+              setFormVariacao((f) => ({
+                ...f,
+                estoque: e.target.value
+              }))
+            }
+            required
+          />
+
 
           <div className="col-span-3">
             <Button type="submit" fullWidth={false} disabled={salvandoVariacao}>
@@ -279,13 +279,13 @@ function ModalVariacoesImagens({ aberto, onFechar, produto }) {
           </div>
         )}
 
-       <div className="flex items-center gap-3">
-  <input
-    type="file"
-    accept="image/*"
-    multiple
-    onChange={(e) => setArquivos(Array.from(e.target.files))}
-    className="
+        <div className="flex items-center gap-3">
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => setArquivos(Array.from(e.target.files))}
+            className="
       text-sm text-[#8e8980]
       file:mr-3 file:px-4 file:py-2
       file:rounded-md file:border-0
@@ -294,20 +294,20 @@ function ModalVariacoesImagens({ aberto, onFechar, produto }) {
       file:cursor-pointer
       cursor-pointer
     "
-  />
+          />
 
-  <Button
-    type="button"
-    fullWidth={false}
-    onClick={handleEnviarImagens}
-    disabled={arquivos.length === 0 || enviandoImagens}
-  >
-    <span className="inline-flex items-center gap-2">
-      <ImagePlus size={16} />
-      {enviandoImagens ? 'Enviando...' : 'Enviar'}
-    </span>
-  </Button>
-</div>
+          <Button
+            type="button"
+            fullWidth={false}
+            onClick={handleEnviarImagens}
+            disabled={arquivos.length === 0 || enviandoImagens}
+          >
+            <span className="inline-flex items-center gap-2">
+              <ImagePlus size={16} />
+              {enviandoImagens ? 'Enviando...' : 'Enviar'}
+            </span>
+          </Button>
+        </div>
       </div>
     </Modal>
   );

@@ -15,14 +15,20 @@ function Produtos() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
 
-  const busca = searchParams.get('busca') || '';
+  const buscaUrl = searchParams.get('busca') || '';
+
+  const [busca, setBusca] = useState(buscaUrl);
 
   useEffect(() => {
     async function carregarProdutos() {
       try {
         const dados = await listarProdutos();
 
-        setProdutos(Array.isArray(dados) ? dados : []);
+        setProdutos(
+          Array.isArray(dados)
+            ? dados
+            : []
+        );
       } catch (error) {
         setErro(error.message);
       } finally {
@@ -33,18 +39,34 @@ function Produtos() {
     carregarProdutos();
   }, []);
 
+  useEffect(() => {
+    setBusca(buscaUrl);
+  }, [buscaUrl]);
+
   function alterarBusca(valor) {
-    if (valor) {
-      setSearchParams({ busca: valor });
+    setBusca(valor);
+  }
+
+  function confirmarBusca() {
+    const termo = busca.trim();
+
+    if (termo) {
+      setSearchParams({
+        busca: termo,
+      });
     } else {
       setSearchParams({});
     }
   }
 
-  const termo = busca.toLowerCase().trim();
+  const termo = busca
+    .toLowerCase()
+    .trim();
 
   const produtosFiltrados = produtos.filter((produto) => {
-    const nome = String(produto.nome || '').toLowerCase();
+    const nome = String(
+      produto.nome || ''
+    ).toLowerCase();
 
     return nome.includes(termo);
   });
@@ -73,6 +95,7 @@ function Produtos() {
         <BarraPesquisa
           value={busca}
           onChange={alterarBusca}
+          onSubmit={confirmarBusca}
         />
       </div>
 

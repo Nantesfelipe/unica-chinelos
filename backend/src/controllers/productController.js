@@ -41,10 +41,11 @@ async function criar(req, res) {
 
 async function listar(req, res) {
   try {
-    const { busca, categoriaId, incluirInativos } = req.query;
+    const { busca, categoriaId,tipoProdutoId ,incluirInativos } = req.query;
     const produtos = await listarProdutos({
       busca,
       categoriaId,
+      tipoProdutoId,
       incluirInativos: incluirInativos === 'true',
     });
     res.json(produtos);

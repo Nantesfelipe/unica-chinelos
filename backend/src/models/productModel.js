@@ -1,4 +1,4 @@
-const pool = require('../config/database'); //essa linha importa a conexão com o banco para que o arquivo possa executar consultas SQL.
+const pool = require('../config/database');
 
 async function criarProduto({
   nome,
@@ -35,7 +35,7 @@ async function criarProduto({
   return result.rows[0];
 }
 
-async function listarProdutos({ busca, categoriaId, incluirInativos } = {}) {
+async function listarProdutos({ busca, categoriaId, tipoProdutoId, incluirInativos } = {}) {
   let query = `
     SELECT
       p.*,
@@ -75,6 +75,14 @@ async function listarProdutos({ busca, categoriaId, incluirInativos } = {}) {
     query += ` AND p.categoria_id = $${valores.length}`;
   }
 
+  if (tipoProdutoId) {
+  valores.push(tipoProdutoId);
+
+  query += `
+    AND p.tipo_produto_id = $${valores.length}
+  `;
+}
+
   query += ' ORDER BY p.created_at DESC';
 
   const result = await pool.query(query, valores);
@@ -82,19 +90,12 @@ async function listarProdutos({ busca, categoriaId, incluirInativos } = {}) {
   return result.rows;
 }
 
-async function desativarProduto(id) {
-  const result = await pool.query(
-    'UPDATE produto SET ativo = false WHERE id = $1 RETURNING *',
-    [id]
-  );
-  return result.rows[0];
-}
-
 async function buscarProdutoPorId(id) {
   const result = await pool.query(
     `
       SELECT
         p.*,
+        tp.nome AS tipo_produto_nome,
         COALESCE(
           (
             SELECT json_agg(
@@ -112,21 +113,7 @@ async function buscarProdutoPorId(id) {
           '[]'::json
         ) AS imagens
       FROM produto p
-      WHERE p.id = $1
-    `,
-    [id]
-  );
-
-  return result.rows[0];
-}
-async function buscarProdutoPorId(id) {
-  const result = await pool.query(
-    `
-      SELECT
-        p.*,
-        tp.nome AS tipo_produto_nome
-      FROM produto p
-      JOIN tipo_produto tp
+      LEFT JOIN tipo_produto tp
         ON tp.id = p.tipo_produto_id
       WHERE p.id = $1
     `,
@@ -148,34 +135,39 @@ async function atualizarProduto(
     promocao,
   }
 ) {
-    const result = await pool.query(
-  `UPDATE produto
-   SET
-     nome = $1,
-     descricao = $2,
-     preco = $3,
-     categoria_id = $4,
-     tipo_produto_id = $5,
-     destaque = $6,
-     promocao = $7
-   WHERE id = $8
-   RETURNING *`,
-  [
-    nome,
-    descricao,
-    preco,
-    categoriaId,
-    tipoProdutoId,
-    destaque,
-    promocao,
-    id,
-  ]
-);
-    return result.rows[0];
+  const result = await pool.query(
+    `UPDATE produto
+     SET
+       nome = $1,
+       descricao = $2,
+       preco = $3,
+       categoria_id = $4,
+       tipo_produto_id = $5,
+       destaque = $6,
+       promocao = $7
+     WHERE id = $8
+     RETURNING *`,
+    [
+      nome,
+      descricao,
+      preco,
+      categoriaId,
+      tipoProdutoId,
+      destaque,
+      promocao,
+      id,
+    ]
+  );
+
+  return result.rows[0];
 }
 
-async function excluirProduto(id) {
-    await pool.query('DELETE FROM produto WHERE id = $1', [id]);
+async function desativarProduto(id) {
+  const result = await pool.query(
+    'UPDATE produto SET ativo = false WHERE id = $1 RETURNING *',
+    [id]
+  );
+  return result.rows[0];
 }
 
 async function reativarProduto(id) {
@@ -188,6 +180,10 @@ async function reativarProduto(id) {
   );
 
   return result.rows[0];
+}
+
+async function excluirProduto(id) {
+  await pool.query('DELETE FROM produto WHERE id = $1', [id]);
 }
 
 module.exports = {

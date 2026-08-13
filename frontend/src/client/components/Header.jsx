@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import {
@@ -9,18 +9,48 @@ import {
   Menu,
   X,
   LogOut,
+  MessageCircle,
 } from 'lucide-react';
+
+import { FaInstagram } from 'react-icons/fa';
 
 import useAuth from '../../hooks/useAuth';
 import useCart from '../../hooks/useCart';
-import logo from "../../assets/images/logo/Logo3.png";
+
+import { listarTiposComProdutos } from '../../services/productType.service';
+
+import logo from '../../assets/images/logo/Logo3.png';
+
 function Header() {
   const navigate = useNavigate();
+
   const { usuario, autenticado, logout } = useAuth();
   const { quantidadeItens } = useCart();
 
   const [busca, setBusca] = useState('');
   const [menuAberto, setMenuAberto] = useState(false);
+  const [tiposProduto, setTiposProduto] = useState([]);
+
+  useEffect(() => {
+    async function carregarTiposProduto() {
+      try {
+        const dados = await listarTiposComProdutos();
+
+        setTiposProduto(
+          Array.isArray(dados) ? dados : []
+        );
+      } catch (error) {
+        console.error(
+          'Erro ao carregar tipos de produto:',
+          error
+        );
+
+        setTiposProduto([]);
+      }
+    }
+
+    carregarTiposProduto();
+  }, []);
 
   function handleBusca(event) {
     event.preventDefault();
@@ -29,10 +59,14 @@ function Header() {
 
     if (!termo) {
       navigate('/produtos');
+      setMenuAberto(false);
       return;
     }
 
-    navigate(`/produtos?busca=${encodeURIComponent(termo)}`);
+    navigate(
+      `/produtos?busca=${encodeURIComponent(termo)}`
+    );
+
     setMenuAberto(false);
   }
 
@@ -48,7 +82,10 @@ function Header() {
         <div className="flex items-center justify-between gap-4">
 
           {/* Logo */}
-          <Link to="/" className="flex items-center">
+          <Link
+            to="/"
+            className="flex items-center"
+          >
             <img
               src={logo}
               alt="Única Conceitos"
@@ -70,7 +107,9 @@ function Header() {
               <input
                 type="text"
                 value={busca}
-                onChange={(event) => setBusca(event.target.value)}
+                onChange={(event) =>
+                  setBusca(event.target.value)
+                }
                 placeholder="Buscar por nome ou cor"
                 className="bg-transparent text-[#e2dacc] placeholder-[#8e8980] text-sm outline-none w-full"
               />
@@ -79,6 +118,7 @@ function Header() {
 
           {/* Navegação desktop */}
           <nav className="hidden md:flex items-center gap-5">
+
             <Link
               to="/produtos"
               className="text-sm hover:text-[#8e8980] transition-colors"
@@ -86,6 +126,30 @@ function Header() {
               Produtos
             </Link>
 
+            {/* Tipos de produto */}
+            {tiposProduto.map((tipo) => (
+              <Link
+                key={tipo.id}
+                to={`/produtos?tipoProdutoId=${tipo.id}`}
+                className="text-sm hover:text-[#8e8980] transition-colors whitespace-nowrap"
+              >
+                {tipo.nome}
+              </Link>
+            ))}
+
+            {/* Instagram */}
+            <a
+              href="https://www.instagram.com/unica__conceito?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Instagram"
+              aria-label="Instagram"
+              className="hover:text-[#8e8980] transition-colors"
+            >
+              <FaInstagram size={20} />
+            </a>
+
+            {/* Carrinho */}
             <Link
               to="/carrinho"
               title="Carrinho"
@@ -100,6 +164,7 @@ function Header() {
               )}
             </Link>
 
+            {/* Meus pedidos */}
             {autenticado && (
               <Link
                 to="/pedidos"
@@ -110,9 +175,18 @@ function Header() {
               </Link>
             )}
 
+            {/* Perfil */}
             <Link
-              to={autenticado ? '/perfil' : '/login'}
-              title={autenticado ? 'Minha conta' : 'Entrar'}
+              to={
+                autenticado
+                  ? '/perfil'
+                  : '/login'
+              }
+              title={
+                autenticado
+                  ? 'Minha conta'
+                  : 'Entrar'
+              }
               className="hover:text-[#8e8980] transition-colors"
             >
               <User size={20} />
@@ -122,11 +196,19 @@ function Header() {
           {/* Botão mobile */}
           <button
             type="button"
-            onClick={() => setMenuAberto((estado) => !estado)}
+            onClick={() =>
+              setMenuAberto(
+                (estado) => !estado
+              )
+            }
             className="md:hidden text-[#e2dacc]"
             aria-label="Abrir menu"
           >
-            {menuAberto ? <X size={24} /> : <Menu size={24} />}
+            {menuAberto ? (
+              <X size={24} />
+            ) : (
+              <Menu size={24} />
+            )}
           </button>
         </div>
 
@@ -144,7 +226,9 @@ function Header() {
             <input
               type="text"
               value={busca}
-              onChange={(event) => setBusca(event.target.value)}
+              onChange={(event) =>
+                setBusca(event.target.value)
+              }
               placeholder="Buscar por nome ou cor"
               className="bg-transparent text-[#e2dacc] placeholder-[#8e8980] text-sm outline-none w-full"
             />
@@ -154,37 +238,80 @@ function Header() {
         {/* Menu mobile */}
         {menuAberto && (
           <nav className="md:hidden border-t border-[#746c5c]/30 mt-4 pt-4 pb-2 space-y-3">
+
             <Link
               to="/produtos"
-              onClick={() => setMenuAberto(false)}
+              onClick={() =>
+                setMenuAberto(false)
+              }
               className="flex items-center gap-3 text-sm"
             >
               Produtos
             </Link>
 
+            {/* Tipos de produto */}
+            {tiposProduto.map((tipo) => (
+              <Link
+                key={tipo.id}
+                to={`/produtos?tipoProdutoId=${tipo.id}`}
+                onClick={() =>
+                  setMenuAberto(false)
+                }
+                className="flex items-center gap-3 text-sm"
+              >
+                {tipo.nome}
+              </Link>
+            ))}
+
+            {/* Instagram */}
+            <a
+              href="https://www.instagram.com/unica__conceito?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() =>
+                setMenuAberto(false)
+              }
+              className="flex items-center gap-3 text-sm"
+            >
+              <FaInstagram size={18} />
+              Instagram
+            </a>
+
+            {/* Carrinho */}
             <Link
               to="/carrinho"
-              onClick={() => setMenuAberto(false)}
+              onClick={() =>
+                setMenuAberto(false)
+              }
               className="flex items-center gap-3 text-sm"
             >
               <ShoppingCart size={18} />
               Carrinho ({quantidadeItens})
             </Link>
 
+            {/* Perfil */}
             <Link
               to="/perfil"
-              onClick={() => setMenuAberto(false)}
+              onClick={() =>
+                setMenuAberto(false)
+              }
               className="flex items-center gap-3 text-sm"
             >
               <User size={18} />
-              {autenticado ? 'Meu perfil' : 'Entrar'}
+
+              {autenticado
+                ? 'Meu perfil'
+                : 'Entrar'}
             </Link>
 
+            {/* Usuário autenticado */}
             {autenticado && (
               <>
                 <Link
                   to="/pedidos"
-                  onClick={() => setMenuAberto(false)}
+                  onClick={() =>
+                    setMenuAberto(false)
+                  }
                   className="flex items-center gap-3 text-sm"
                 >
                   Meus pedidos
@@ -207,6 +334,18 @@ function Header() {
           </nav>
         )}
       </div>
+
+      {/* WhatsApp fixo */}
+      <a
+        href="https://wa.me/5567992239122"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Fale conosco pelo WhatsApp"
+        title="Fale conosco pelo WhatsApp"
+        className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+      >
+        <MessageCircle size={28} />
+      </a>
     </header>
   );
 }

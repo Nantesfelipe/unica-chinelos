@@ -107,7 +107,7 @@ function ModalProduto({
     );
 
     const ehCalcado =
-      tipoSelecionado?.nome?.toLowerCase() === 'calçado';
+      tipoSelecionado?.nome?.toLowerCase() === 'calçados';
 
     if (ehCalcado) {
       for (const variacao of form.variacoes) {
@@ -273,7 +273,7 @@ function ModalProduto({
         );
 
         const ehCalcado =
-          tipoSelecionado?.nome?.toLowerCase() === 'calçado';
+          tipoSelecionado?.nome?.toLowerCase() === 'calçados';
 
         if (!ehCalcado) {
           return null;

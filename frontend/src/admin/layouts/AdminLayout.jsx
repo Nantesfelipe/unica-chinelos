@@ -1,18 +1,34 @@
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 
 function AdminLayout() {
+  const [menuAberto, setMenuAberto] = useState(false);
+
+  function abrirMenu() {
+    setMenuAberto(true);
+  }
+
+  function fecharMenu() {
+    setMenuAberto(false);
+  }
+
   return (
-    <div className="flex min-h-screen bg-[#e2dacc]">
-      <Sidebar />
+    <div className="min-h-screen bg-[#e2dacc]">
+      <Sidebar
+        aberto={menuAberto}
+        onFechar={fecharMenu}
+      />
 
-      <div className="flex-1 flex flex-col">
-        <Topbar />
+      <div className="min-h-screen lg:pl-64">
+        <Topbar onAbrirMenu={abrirMenu} />
 
-        <main className="flex-1 p-6">
-          <Outlet />
+        <main className="min-w-0 px-4 py-4 sm:px-6 sm:py-6">
+          <div className="mx-auto w-full max-w-[1600px] min-w-0">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

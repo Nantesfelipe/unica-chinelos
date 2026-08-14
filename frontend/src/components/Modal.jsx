@@ -9,7 +9,9 @@ function Modal({
   tamanho = 'md',
 }) {
   useEffect(() => {
-    if (!aberto) return;
+    if (!aberto) {
+      return;
+    }
 
     function handleKeyDown(event) {
       if (event.key === 'Escape') {
@@ -17,10 +19,16 @@ function Modal({
       }
     }
 
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener(
+      'keydown',
+      handleKeyDown
+    );
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener(
+        'keydown',
+        handleKeyDown
+      );
     };
   }, [aberto, onFechar]);
 
@@ -36,7 +44,9 @@ function Modal({
   };
 
   function handleFundoClick(event) {
-    if (event.target === event.currentTarget) {
+    if (
+      event.target === event.currentTarget
+    ) {
       onFechar();
     }
   }
@@ -44,20 +54,29 @@ function Modal({
   return (
     <div
       onClick={handleFundoClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#171511]/60 px-4"
+      className="
+        fixed inset-0 z-50
+        flex items-center justify-center
+        bg-[#171511]/60
+        p-3 sm:p-4
+      "
     >
       <div
         className={`
           w-full
           ${tamanhos[tamanho]}
+          max-h-[calc(100vh-1.5rem)]
+          sm:max-h-[calc(100vh-2rem)]
           bg-[#e2dacc]
           rounded-lg
           shadow-xl
           overflow-hidden
+          flex flex-col
         `}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#8e8980]/30">
-          <h2 className="text-lg font-semibold text-[#171511]">
+        {/* Cabeçalho */}
+        <div className="shrink-0 flex items-center justify-between gap-4 px-4 py-4 sm:px-6 border-b border-[#8e8980]/30">
+          <h2 className="min-w-0 text-base sm:text-lg font-semibold text-[#171511] truncate">
             {titulo}
           </h2>
 
@@ -65,13 +84,15 @@ function Modal({
             type="button"
             onClick={onFechar}
             title="Fechar"
-            className="text-[#8e8980] hover:text-[#171511] transition-colors"
+            aria-label="Fechar"
+            className="shrink-0 text-[#8e8980] hover:text-[#171511] transition-colors"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-6">
+        {/* Conteúdo */}
+        <div className="min-h-0 overflow-y-auto p-4 sm:p-6">
           {children}
         </div>
       </div>

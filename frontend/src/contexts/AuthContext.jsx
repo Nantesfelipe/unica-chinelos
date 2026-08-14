@@ -1,59 +1,127 @@
-import { createContext, useEffect, useState } from 'react';
+import {
+  createContext,
+  useEffect,
+  useState,
+} from 'react';
+
 import {
   login as loginService,
-  obterUsuarioAtual
+  obterUsuarioAtual,
 } from '../services/auth.service';
 
-export const AuthContext = createContext();
+export const AuthContext =
+  createContext();
 
-function AuthProvider({ children }) {
-  const [usuario, setUsuario] = useState(null);
-  const [carregando, setCarregando] = useState(true);
+function AuthProvider({
+  children,
+}) {
+  const [
+    usuario,
+    setUsuario,
+  ] = useState(null);
+
+  const [
+    carregando,
+    setCarregando,
+  ] = useState(true);
 
   useEffect(() => {
-  async function validarSessao() {
-    const token = localStorage.getItem('token');
+    async function validarSessao() {
+      const token =
+        localStorage.getItem(
+          'token'
+        );
 
-    if (!token) {
-      setCarregando(false);
-      return;
+      if (!token) {
+        setCarregando(false);
+        return;
+      }
+
+      try {
+        const usuarioAtual =
+          await obterUsuarioAtual();
+
+        localStorage.setItem(
+          'usuario',
+          JSON.stringify(
+            usuarioAtual
+          )
+        );
+
+        setUsuario(
+          usuarioAtual
+        );
+      } catch (error) {
+        localStorage.removeItem(
+          'token'
+        );
+
+        localStorage.removeItem(
+          'usuario'
+        );
+
+        setUsuario(null);
+      } finally {
+        setCarregando(false);
+      }
     }
 
-    try {
-      const usuarioAtual = await obterUsuarioAtual();
+    validarSessao();
+  }, []);
 
-      localStorage.setItem(
-        'usuario',
-        JSON.stringify(usuarioAtual)
-      );
+  async function login(
+    email,
+    senha
+  ) {
+    const resposta =
+      await loginService({
+        email,
+        senha,
+      });
 
-      setUsuario(usuarioAtual);
-    } catch (error) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('usuario');
-      setUsuario(null);
-    } finally {
-      setCarregando(false);
-    }
-  }
+    localStorage.setItem(
+      'token',
+      resposta.token
+    );
 
-  validarSessao();
-}, []);
+    localStorage.setItem(
+      'usuario',
+      JSON.stringify(
+        resposta.usuario
+      )
+    );
 
-  async function login(email, senha) {
-    const resposta = await loginService({ email, senha });
-
-    localStorage.setItem('token', resposta.token);
-    localStorage.setItem('usuario', JSON.stringify(resposta.usuario));
-
-    setUsuario(resposta.usuario);
+    setUsuario(
+      resposta.usuario
+    );
 
     return resposta;
   }
 
+  function atualizarUsuario(
+    usuarioAtualizado
+  ) {
+    localStorage.setItem(
+      'usuario',
+      JSON.stringify(
+        usuarioAtualizado
+      )
+    );
+
+    setUsuario(
+      usuarioAtualizado
+    );
+  }
+
   function logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('usuario');
+    localStorage.removeItem(
+      'token'
+    );
+
+    localStorage.removeItem(
+      'usuario'
+    );
+
     setUsuario(null);
   }
 
@@ -64,8 +132,11 @@ function AuthProvider({ children }) {
         carregando,
         login,
         logout,
+        atualizarUsuario,
         autenticado: !!usuario,
-        ehAdmin: usuario?.tipo === 'admin',
+        ehAdmin:
+          usuario?.tipo ===
+          'admin',
       }}
     >
       {children}

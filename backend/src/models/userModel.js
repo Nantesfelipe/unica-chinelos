@@ -45,10 +45,81 @@ async function buscarPorId(id) {
        nome,
        email,
        tipo,
-       created_at
+       created_at,
+       telefone,
+       cpf,
+       cep,
+       logradouro,
+       numero,
+       complemento,
+       bairro,
+       cidade,
+       estado
      FROM usuario
      WHERE id = $1`,
     [id]
+  );
+
+  return result.rows[0];
+}
+
+async function atualizarPerfil(
+  id,
+  {
+    nome,
+    telefone,
+    cpf,
+    cep,
+    logradouro,
+    numero,
+    complemento,
+    bairro,
+    cidade,
+    estado,
+  }
+) {
+  const result = await pool.query(
+    `UPDATE usuario
+     SET
+       nome = $1,
+       telefone = $2,
+       cpf = $3,
+       cep = $4,
+       logradouro = $5,
+       numero = $6,
+       complemento = $7,
+       bairro = $8,
+       cidade = $9,
+       estado = $10
+     WHERE id = $11
+     RETURNING
+       id,
+       nome,
+       email,
+       tipo,
+       created_at,
+       telefone,
+       cpf,
+       cep,
+       logradouro,
+       numero,
+       complemento,
+       bairro,
+       cidade,
+       estado`,
+    [
+      nome,
+      telefone,
+      cpf,
+      cep,
+      logradouro,
+      numero,
+      complemento,
+      bairro,
+      cidade,
+      estado,
+      id,
+    ]
   );
 
   return result.rows[0];
@@ -61,7 +132,16 @@ async function listarClientes() {
        nome,
        email,
        tipo,
-       created_at
+       created_at,
+       telefone,
+       cpf,
+       cep,
+       logradouro,
+       numero,
+       complemento,
+       bairro,
+       cidade,
+       estado
      FROM usuario
      WHERE tipo = 'cliente'
      ORDER BY created_at DESC`
@@ -77,6 +157,15 @@ async function buscarClienteComPedidos(id) {
        u.nome,
        u.email,
        u.created_at,
+       u.telefone,
+       u.cpf,
+       u.cep,
+       u.logradouro,
+       u.numero,
+       u.complemento,
+       u.bairro,
+       u.cidade,
+       u.estado,
 
        COUNT(p.id)::integer AS total_pedidos,
 
@@ -117,7 +206,16 @@ async function buscarClienteComPedidos(id) {
        u.id,
        u.nome,
        u.email,
-       u.created_at`,
+       u.created_at,
+       u.telefone,
+       u.cpf,
+       u.cep,
+       u.logradouro,
+       u.numero,
+       u.complemento,
+       u.bairro,
+       u.cidade,
+       u.estado`,
     [id]
   );
 
@@ -128,6 +226,7 @@ module.exports = {
   criarUsuario,
   buscarPorEmail,
   buscarPorId,
+  atualizarPerfil,
   listarClientes,
   buscarClienteComPedidos,
 };

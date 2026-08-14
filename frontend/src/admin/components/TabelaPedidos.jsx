@@ -1,14 +1,9 @@
-import { Eye, Package } from 'lucide-react';
+import {
+  Eye,
+  Package,
+} from 'lucide-react';
 
 import formatCurrency from '../../utils/formatCurrency';
-
-const STATUS_LABELS = {
-  recebido: 'Recebido',
-  em_separacao: 'Em separação',
-  enviado: 'Enviado',
-  entregue: 'Entregue',
-  cancelado: 'Cancelado',
-};
 
 const STATUS_OPTIONS = [
   {
@@ -33,7 +28,9 @@ const STATUS_OPTIONS = [
   },
 ];
 
-function obterClasseStatus(status) {
+function obterClasseStatus(
+  status
+) {
   switch (status) {
     case 'entregue':
       return 'bg-green-100 text-green-800';
@@ -57,7 +54,11 @@ function formatarData(data) {
     return '—';
   }
 
-  return new Date(data).toLocaleDateString('pt-BR');
+  return new Date(
+    data
+  ).toLocaleDateString(
+    'pt-BR'
+  );
 }
 
 function TabelaPedidos({
@@ -68,7 +69,7 @@ function TabelaPedidos({
 }) {
   if (pedidos.length === 0) {
     return (
-      <div className="bg-white border border-[#8e8980]/20 rounded-lg p-10 text-center">
+      <div className="bg-white border border-[#8e8980]/20 rounded-lg p-6 sm:p-10 text-center">
         <Package
           size={32}
           className="mx-auto text-[#8e8980]"
@@ -84,7 +85,7 @@ function TabelaPedidos({
   return (
     <div className="bg-white border border-[#8e8980]/20 rounded-lg overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[820px] text-sm">
           <thead>
             <tr className="text-left text-[#8e8980] border-b border-[#8e8980]/20">
               <th className="px-5 py-3 font-normal">
@@ -107,90 +108,125 @@ function TabelaPedidos({
                 Total
               </th>
 
-              <th className="px-5 py-3 font-normal" />
+              <th className="px-5 py-3 font-normal">
+              </th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-[#8e8980]/10">
-            {pedidos.map((pedido) => {
-              const atualizando =
-                atualizandoStatusId === pedido.id;
+            {pedidos.map(
+              (pedido) => {
+                const atualizando =
+                  atualizandoStatusId ===
+                  pedido.id;
 
-              return (
-                <tr key={pedido.id}>
-                  <td className="px-5 py-4 font-medium text-[#171511]">
-                    #{pedido.id}
-                  </td>
+                return (
+                  <tr
+                    key={pedido.id}
+                  >
+                    <td className="px-5 py-4 font-medium text-[#171511]">
+                      #{pedido.id}
+                    </td>
 
-                  <td className="px-5 py-4">
-                    <p className="text-[#171511] font-medium">
-                      {pedido.usuario_nome}
-                    </p>
+                    <td className="px-5 py-4">
+                      <p className="text-[#171511] font-medium">
+                        {
+                          pedido.usuario_nome
+                        }
+                      </p>
 
-                    <p className="text-xs text-[#8e8980] mt-1">
-                      {pedido.usuario_email}
-                    </p>
-                  </td>
+                      <p className="text-xs text-[#8e8980] mt-1">
+                        {
+                          pedido.usuario_email
+                        }
+                      </p>
+                    </td>
 
-                  <td className="px-5 py-4 text-[#8e8980]">
-                    {formatarData(pedido.created_at)}
-                  </td>
+                    <td className="px-5 py-4 text-[#8e8980]">
+                      {formatarData(
+                        pedido.created_at
+                      )}
+                    </td>
 
-                  <td className="px-5 py-4">
-                    <select
-                      value={pedido.status}
-                      onChange={(event) =>
-                        onAlterarStatus(
-                          pedido.id,
-                          event.target.value
-                        )
-                      }
-                      disabled={atualizando}
-                      className={`text-xs px-3 py-2 rounded-md border border-transparent outline-none ${obterClasseStatus(
-                        pedido.status
-                      )} ${
-                        atualizando
-                          ? 'opacity-50 cursor-not-allowed'
-                          : 'cursor-pointer'
-                      }`}
-                      title="Alterar status do pedido"
-                    >
-                      {STATUS_OPTIONS.map((status) => (
-                        <option
-                          key={status.value}
-                          value={status.value}
-                        >
-                          {status.label}
-                        </option>
-                      ))}
-                    </select>
+                    <td className="px-5 py-4">
+                      <select
+                        value={
+                          pedido.status
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          onAlterarStatus(
+                            pedido.id,
+                            event.target
+                              .value
+                          )
+                        }
+                        disabled={
+                          atualizando
+                        }
+                        className={`text-xs px-3 py-2 rounded-md border border-transparent outline-none ${obterClasseStatus(
+                          pedido.status
+                        )} ${
+                          atualizando
+                            ? 'opacity-50 cursor-not-allowed'
+                            : 'cursor-pointer'
+                        }`}
+                        title="Alterar status do pedido"
+                      >
+                        {STATUS_OPTIONS.map(
+                          (
+                            status
+                          ) => (
+                            <option
+                              key={
+                                status.value
+                              }
+                              value={
+                                status.value
+                              }
+                            >
+                              {
+                                status.label
+                              }
+                            </option>
+                          )
+                        )}
+                      </select>
 
-                    {atualizando && (
-                      <span className="text-xs text-[#8e8980] ml-2">
-                        Salvando...
-                      </span>
-                    )}
-                  </td>
+                      {atualizando && (
+                        <span className="text-xs text-[#8e8980] ml-2">
+                          Salvando...
+                        </span>
+                      )}
+                    </td>
 
-                  <td className="px-5 py-4 font-medium text-[#171511]">
-                    {formatCurrency(pedido.valor_total)}
-                  </td>
+                    <td className="px-5 py-4 font-medium text-[#171511]">
+                      {formatCurrency(
+                        pedido.valor_total
+                      )}
+                    </td>
 
-                  <td className="px-5 py-4 text-right">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onSelecionar(pedido.id)
-                      }
-                      title="Ver pedido"
-                      className="text-[#746c5c] hover:text-[#171511]"
-                    >
-                      <Eye size={17} />
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+                    <td className="px-5 py-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onSelecionar(
+                            pedido.id
+                          )
+                        }
+                        title="Ver pedido"
+                        className="text-[#746c5c] hover:text-[#171511]"
+                      >
+                        <Eye
+                          size={17}
+                        />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              }
+            )}
           </tbody>
         </table>
       </div>

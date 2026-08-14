@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 
-
 import {
   listarProdutos,
   criarProduto,
@@ -9,14 +8,16 @@ import {
   excluirProduto,
   reativarProduto,
   criarVariacao,
+  excluirProdutoDefinitivo,
 } from '../../services/product.service';
+
 import { listarCategorias } from '../../services/category.service';
 import { listarTiposProduto } from '../../services/productType.service';
 
 import TabelaProdutos from '../components/TabelaProdutos';
 import ModalProduto from '../components/ModalProduto';
 import ModalVariacoesImagens from '../components/ModalVariacoesImagens';
-import { excluirProdutoDefinitivo } from '../../services/product.service';
+
 import Button from '../../components/Button';
 import Loading from '../../components/Loading';
 
@@ -35,18 +36,32 @@ function Produtos() {
 
   async function carregarDados() {
     setCarregando(true);
+
     try {
       const [
         dadosProdutos,
         dadosCategorias,
         dadosTiposProduto,
       ] = await Promise.all([
-        listarProdutos({ incluirInativos: true }),
+        listarProdutos({
+          incluirInativos: true,
+        }),
         listarCategorias(),
         listarTiposProduto(),
       ]);
-      setProdutos(Array.isArray(dadosProdutos) ? dadosProdutos : []);
-      setCategorias(Array.isArray(dadosCategorias) ? dadosCategorias : []);
+
+      setProdutos(
+        Array.isArray(dadosProdutos)
+          ? dadosProdutos
+          : []
+      );
+
+      setCategorias(
+        Array.isArray(dadosCategorias)
+          ? dadosCategorias
+          : []
+      );
+
       setTiposProduto(
         Array.isArray(dadosTiposProduto)
           ? dadosTiposProduto
@@ -78,11 +93,30 @@ function Produtos() {
     setModalMidiaAberto(true);
   }
 
- async function handleSalvar(dados) {
-  if (produtoEditando) {
-    await atualizarProduto(
-      produtoEditando.id,
-      {
+  async function handleSalvar(dados) {
+    if (produtoEditando) {
+      await atualizarProduto(
+        produtoEditando.id,
+        {
+          nome: dados.nome,
+          descricao: dados.descricao,
+          preco: dados.preco,
+          categoriaId: dados.categoriaId,
+          tipoProdutoId: dados.tipoProdutoId,
+          destaque: dados.destaque,
+          promocao: dados.promocao,
+        }
+      );
+
+      setModalAberto(false);
+
+      await carregarDados();
+
+      return;
+    }
+
+    const produtoCriado =
+      await criarProduto({
         nome: dados.nome,
         descricao: dados.descricao,
         preco: dados.preco,
@@ -90,39 +124,28 @@ function Produtos() {
         tipoProdutoId: dados.tipoProdutoId,
         destaque: dados.destaque,
         promocao: dados.promocao,
+      });
+
+    if (Array.isArray(dados.variacoes)) {
+      for (const variacao of dados.variacoes) {
+        await criarVariacao(
+          produtoCriado.id,
+          variacao
+        );
       }
-    );
+    }
 
     setModalAberto(false);
+
     await carregarDados();
-
-    return;
   }
 
-  const produtoCriado = await criarProduto({
-    nome: dados.nome,
-    descricao: dados.descricao,
-    preco: dados.preco,
-    categoriaId: dados.categoriaId,
-    tipoProdutoId: dados.tipoProdutoId,
-    destaque: dados.destaque,
-    promocao: dados.promocao,
-  });
-
-  if (Array.isArray(dados.variacoes)) {
-    for (const variacao of dados.variacoes) {
-      await criarVariacao(
-        produtoCriado.id,
-        variacao
-      );
-    }
-  }
-
-  setModalAberto(false);
-  await carregarDados();
-}
   async function handleDesativar(produto) {
-    if (!confirm(`Desativar "${produto.nome}"? Ele deixará de aparecer na loja.`)) {
+    if (
+      !confirm(
+        `Desativar "${produto.nome}"? Ele deixará de aparecer na loja.`
+      )
+    ) {
       return;
     }
 
@@ -142,66 +165,112 @@ function Produtos() {
       alert(error.message);
     }
   }
+
   async function handleExcluirDefinitivo(produto) {
-    if (!confirm(`Excluir "${produto.nome}" definitivamente? Essa ação não pode ser desfeita.`)) {
+    if (
+      !confirm(
+        `Excluir "${produto.nome}" definitivamente? Essa ação não pode ser desfeita.`
+      )
+    ) {
       return;
     }
 
     try {
-      await excluirProdutoDefinitivo(produto.id);
+      await excluirProdutoDefinitivo(
+        produto.id
+      );
+
       await carregarDados();
     } catch (error) {
       alert(error.message);
     }
   }
+
   if (carregando) {
-    return <Loading text="Carregando produtos..." />;
+    return (
+      <Loading text="Carregando produtos..." />
+    );
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-[#171511]">Produtos</h1>
+    <div className="min-w-0 w-full">
+      {/* Cabeçalho */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold text-[#171511]">
+            Produtos
+          </h1>
 
-        <Button onClick={abrirCriar} fullWidth={false}>
-          <span className="inline-flex items-center gap-2">
+          <p className="text-sm text-[#8e8980] mt-1">
+            Gerencie seus produtos, variações e imagens.
+          </p>
+        </div>
+
+        <Button
+          onClick={abrirCriar}
+          fullWidth={false}
+          className="w-full sm:w-auto"
+        >
+          <span className="inline-flex items-center justify-center gap-2">
             <Plus size={16} />
             Novo produto
           </span>
         </Button>
       </div>
 
+      {/* Erro */}
       {erro && (
         <div className="bg-red-50 border border-red-200 rounded-md px-4 py-3 mb-5">
-          <p className="text-sm text-red-700">{erro}</p>
+          <p className="text-sm text-red-700">
+            {erro}
+          </p>
         </div>
       )}
 
-      <TabelaProdutos
-        produtos={produtos}
-        onEditar={abrirEditar}
-        onGerenciarMidia={abrirGerenciarMidia}
-        onDesativar={handleDesativar}
-        onReativar={handleReativar}
-        onExcluirDefinitivo={handleExcluirDefinitivo}
-      />
+      {/* Tabela */}
+      <div className="min-w-0 w-full">
+        <TabelaProdutos
+          produtos={produtos}
+          onEditar={abrirEditar}
+          onGerenciarMidia={
+            abrirGerenciarMidia
+          }
+          onDesativar={
+            handleDesativar
+          }
+          onReativar={
+            handleReativar
+          }
+          onExcluirDefinitivo={
+            handleExcluirDefinitivo
+          }
+        />
+      </div>
 
+      {/* Modal de produto */}
       <ModalProduto
         aberto={modalAberto}
-        onFechar={() => setModalAberto(false)}
+        onFechar={() =>
+          setModalAberto(false)
+        }
         onSalvar={handleSalvar}
-        produtoEditando={produtoEditando}
+        produtoEditando={
+          produtoEditando
+        }
         categorias={categorias}
-        tiposProduto={tiposProduto}
+        tiposProduto={
+          tiposProduto
+        }
       />
 
+      {/* Modal de variações e imagens */}
       <ModalVariacoesImagens
         aberto={modalMidiaAberto}
-        onFechar={() => setModalMidiaAberto(false)}
+        onFechar={() =>
+          setModalMidiaAberto(false)
+        }
         produto={produtoMidia}
       />
-
-
     </div>
   );
 }

@@ -1,213 +1,78 @@
-import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
-
 import {
-  listarTiposProduto,
-  criarTipoProduto,
-  atualizarTipoProduto,
-  excluirTipoProduto,
-} from '../../services/productType.service';
+  Trash2,
+  Tags,
+} from 'lucide-react';
 
-import TabelaTiposProdutos from '../components/TabelaTiposProdutos';
+function TabelaCategorias({
+  categorias,
+  onExcluir,
+}) {
+  if (categorias.length === 0) {
+    return (
+      <div className="bg-white rounded-lg border border-[#8e8980]/20 p-6 sm:p-10 text-center">
+        <Tags
+          size={32}
+          className="mx-auto text-[#8e8980]"
+        />
 
-import Input from '../../components/Input';
-import Button from '../../components/Button';
-
-function TiposProdutos() {
-  const [tipos, setTipos] = useState([]);
-  const [carregando, setCarregando] = useState(true);
-
-  const [erro, setErro] = useState('');
-  const [nome, setNome] = useState('');
-
-  const [tipoEditando, setTipoEditando] = useState(null);
-  const [salvando, setSalvando] = useState(false);
-
-  async function carregarTipos() {
-    setCarregando(true);
-
-    try {
-      const dados = await listarTiposProduto();
-
-      setTipos(
-        Array.isArray(dados)
-          ? dados
-          : []
-      );
-    } catch (error) {
-      setErro(error.message);
-    } finally {
-      setCarregando(false);
-    }
-  }
-
-  useEffect(() => {
-    carregarTipos();
-  }, []);
-
-  function iniciarNovo() {
-    setTipoEditando(null);
-    setNome('');
-    setErro('');
-  }
-
-  function iniciarEdicao(tipo) {
-    setTipoEditando(tipo);
-    setNome(tipo.nome);
-    setErro('');
-  }
-
-  async function handleSalvar(event) {
-    event.preventDefault();
-
-    setErro('');
-
-    const nomeLimpo = nome.trim();
-
-    if (!nomeLimpo) {
-      setErro(
-        'Digite um nome para o tipo de produto.'
-      );
-      return;
-    }
-
-    setSalvando(true);
-
-    try {
-      if (tipoEditando) {
-        await atualizarTipoProduto(
-          tipoEditando.id,
-          {
-            nome: nomeLimpo,
-          }
-        );
-      } else {
-        await criarTipoProduto({
-          nome: nomeLimpo,
-        });
-      }
-
-      setNome('');
-      setTipoEditando(null);
-
-      await carregarTipos();
-    } catch (error) {
-      setErro(error.message);
-    } finally {
-      setSalvando(false);
-    }
-  }
-
-  async function handleExcluir(tipo) {
-    const confirmar = confirm(
-      `Excluir "${tipo.nome}"?`
+        <p className="text-sm text-[#8e8980] mt-3">
+          Nenhuma categoria cadastrada.
+        </p>
+      </div>
     );
-
-    if (!confirmar) {
-      return;
-    }
-
-    setErro('');
-
-    try {
-      await excluirTipoProduto(tipo.id);
-
-      if (tipoEditando?.id === tipo.id) {
-        setTipoEditando(null);
-        setNome('');
-      }
-
-      await carregarTipos();
-    } catch (error) {
-      setErro(error.message);
-    }
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#171511]">
-            Tipos de produtos
-          </h1>
+    <div className="bg-white rounded-lg border border-[#8e8980]/20 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[420px] text-sm">
+          <thead>
+            <tr className="text-left text-[#8e8980] border-b border-[#8e8980]/20">
+              <th className="px-5 py-3 font-normal">
+                Nome
+              </th>
 
-          <p className="text-sm text-[#8e8980] mt-1">
-            Cadastre, edite e exclua os tipos de
-            produtos da loja.
-          </p>
-        </div>
-      </div>
+              <th className="px-5 py-3 font-normal">
+              </th>
+            </tr>
+          </thead>
 
-      <form
-        onSubmit={handleSalvar}
-        className="bg-white border border-[#8e8980]/20 rounded-lg p-5 mb-6"
-      >
-        <div className="flex flex-col sm:flex-row sm:items-end gap-3 max-w-2xl">
-          <div className="flex-1">
-            <Input
-              label={
-                tipoEditando
-                  ? 'Editar tipo de produto'
-                  : 'Novo tipo de produto'
-              }
-              name="nome"
-              value={nome}
-              onChange={(event) =>
-                setNome(event.target.value)
-              }
-            />
-          </div>
+          <tbody className="divide-y divide-[#8e8980]/10">
+            {categorias.map(
+              (categoria) => (
+                <tr
+                  key={categoria.id}
+                >
+                  <td className="px-5 py-3 text-[#171511]">
+                    {categoria.nome}
+                  </td>
 
-          <div className="flex gap-2">
-            <Button
-              type="submit"
-              fullWidth={false}
-              disabled={salvando}
-            >
-              <span className="inline-flex items-center gap-2">
-                <Plus size={16} />
-
-                {tipoEditando
-                  ? 'Salvar alteração'
-                  : 'Adicionar'}
-              </span>
-            </Button>
-
-            {tipoEditando && (
-              <Button
-                type="button"
-                fullWidth={false}
-                disabled={salvando}
-                onClick={iniciarNovo}
-              >
-                Cancelar
-              </Button>
+                  <td className="px-5 py-3">
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onExcluir(
+                            categoria
+                          )
+                        }
+                        title="Excluir"
+                        className="text-[#8e8980] hover:text-red-700"
+                      >
+                        <Trash2
+                          size={16}
+                        />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
             )}
-          </div>
-        </div>
-      </form>
-
-      {erro && (
-        <div className="bg-red-50 border border-red-200 rounded-md px-4 py-3 mb-5">
-          <p className="text-sm text-red-700">
-            {erro}
-          </p>
-        </div>
-      )}
-
-      {carregando ? (
-        <p className="text-sm text-[#8e8980]">
-          Carregando...
-        </p>
-      ) : (
-        <TabelaTiposProdutos
-          tipos={tipos}
-          onEditar={iniciarEdicao}
-          onExcluir={handleExcluir}
-        />
-      )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
-export default TiposProdutos;
+export default TabelaCategorias;

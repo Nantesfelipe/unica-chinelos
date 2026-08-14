@@ -19,7 +19,7 @@ function TabelaProdutos({
 }) {
   if (produtos.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-[#8e8980]/20 p-10 text-center">
+      <div className="bg-white rounded-lg border border-[#8e8980]/20 p-6 sm:p-10 text-center">
         <Package
           size={32}
           className="mx-auto text-[#8e8980]"
@@ -35,7 +35,7 @@ function TabelaProdutos({
   return (
     <div className="bg-white rounded-lg border border-[#8e8980]/20 overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[900px] text-sm">
           <thead>
             <tr className="text-left text-[#8e8980] border-b border-[#8e8980]/20">
               <th className="px-5 py-3 font-normal">
@@ -62,7 +62,8 @@ function TabelaProdutos({
                 Status
               </th>
 
-              <th className="px-5 py-3 font-normal"></th>
+              <th className="px-5 py-3 font-normal">
+              </th>
             </tr>
           </thead>
 
@@ -82,10 +83,10 @@ function TabelaProdutos({
                       <img
                         src={produto.imagem_principal}
                         alt={produto.nome}
-                        className="w-10 h-10 rounded-md object-cover border border-[#8e8980]/20"
+                        className="w-10 h-10 rounded-md object-cover border border-[#8e8980]/20 shrink-0"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-md bg-[#e2dacc] flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-md bg-[#e2dacc] flex items-center justify-center shrink-0">
                         <Package
                           size={17}
                           className="text-[#8e8980]"
@@ -180,9 +181,7 @@ function TabelaProdutos({
                         <button
                           type="button"
                           onClick={() =>
-                            onExcluirDefinitivo(
-                              produto
-                            )
+                            onExcluirDefinitivo(produto)
                           }
                           title="Excluir definitivamente"
                           className="text-[#8e8980] hover:text-red-700"

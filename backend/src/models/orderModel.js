@@ -2,81 +2,225 @@ const pool = require('../config/database');
 
 async function buscarVariacaoComPreco(variacaoId) {
   const result = await pool.query(
-    `SELECT v.id, v.estoque, p.preco
+    `SELECT
+       v.id,
+       v.estoque,
+       p.preco
      FROM variacao v
-     JOIN produto p ON p.id = v.produto_id
+     JOIN produto p
+       ON p.id = v.produto_id
      WHERE v.id = $1`,
     [variacaoId]
   );
+
   return result.rows[0];
 }
 
-async function criarPedidoComItens({ usuarioId, formaPagamento, itens }) {
+async function criarPedidoComItens({
+  usuarioId,
+  formaPagamento,
+  itens,
+}) {
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
 
+    /*
+     * Busca o endereço atual do cliente.
+     * O endereço será copiado para o pedido.
+     */
+    const usuarioResult = await client.query(
+      `SELECT
+         cep,
+         logradouro,
+         numero,
+         complemento,
+         bairro,
+         cidade,
+         estado
+       FROM usuario
+       WHERE id = $1
+       FOR SHARE`,
+      [usuarioId]
+    );
+
+    const usuario = usuarioResult.rows[0];
+
+    if (!usuario) {
+      const erro = new Error(
+        'Usuário não encontrado.'
+      );
+
+      erro.code = 'USER_NOT_FOUND';
+
+      throw erro;
+    }
+
+    const camposEndereco = [
+      'cep',
+      'logradouro',
+      'numero',
+      'bairro',
+      'cidade',
+      'estado',
+    ];
+
+    const enderecoCompleto =
+      camposEndereco.every(
+        (campo) => {
+          const valor =
+            usuario[campo];
+
+          return (
+            valor !== null &&
+            valor !== undefined &&
+            String(valor).trim() !== ''
+          );
+        }
+      );
+
+    if (!enderecoCompleto) {
+      const erro = new Error(
+        'Complete seu endereço no perfil antes de finalizar o pedido.'
+      );
+
+      erro.code = 'INCOMPLETE_ADDRESS';
+
+      throw erro;
+    }
+
     const itensAgrupados = new Map();
 
     for (const item of itens) {
-      const variacaoId = Number(item.variacaoId);
-      const quantidade = Number(item.quantidade);
+      const variacaoId = Number(
+        item.variacaoId
+      );
 
-      const quantidadeAtual = itensAgrupados.get(variacaoId) || 0;
+      const quantidade = Number(
+        item.quantidade
+      );
 
-      itensAgrupados.set(variacaoId, quantidadeAtual + quantidade);
+      const quantidadeAtual =
+        itensAgrupados.get(
+          variacaoId
+        ) || 0;
+
+      itensAgrupados.set(
+        variacaoId,
+        quantidadeAtual +
+          quantidade
+      );
     }
 
     const itensComPreco = [];
+
     let valorTotal = 0;
 
-    for (const [variacaoId, quantidade] of itensAgrupados) {
-      const variacaoResult = await client.query(
-        `SELECT
-           v.id,
-           v.estoque,
-           p.preco
-         FROM variacao v
-         JOIN produto p ON p.id = v.produto_id
-         WHERE v.id = $1
-         FOR UPDATE OF v`,
-        [variacaoId]
-      );
+    for (const [
+      variacaoId,
+      quantidade,
+    ] of itensAgrupados) {
+      const variacaoResult =
+        await client.query(
+          `SELECT
+             v.id,
+             v.estoque,
+             p.preco
+           FROM variacao v
+           JOIN produto p
+             ON p.id = v.produto_id
+           WHERE v.id = $1
+           FOR UPDATE OF v`,
+          [variacaoId]
+        );
 
-      const variacao = variacaoResult.rows[0];
+      const variacao =
+        variacaoResult.rows[0];
 
       if (!variacao) {
-        const erro = new Error(`Variação ${variacaoId} não encontrada.`);
-        erro.code = 'VARIATION_NOT_FOUND';
+        const erro = new Error(
+          `Variação ${variacaoId} não encontrada.`
+        );
+
+        erro.code =
+          'VARIATION_NOT_FOUND';
+
         throw erro;
       }
 
-      if (Number(variacao.estoque) < quantidade) {
-        const erro = new Error(`Estoque insuficiente para a variação ${variacaoId}.`);
-        erro.code = 'INSUFFICIENT_STOCK';
+      if (
+        Number(variacao.estoque) <
+        quantidade
+      ) {
+        const erro = new Error(
+          `Estoque insuficiente para a variação ${variacaoId}.`
+        );
+
+        erro.code =
+          'INSUFFICIENT_STOCK';
+
         throw erro;
       }
 
-      const preco = Number(variacao.preco);
+      const preco = Number(
+        variacao.preco
+      );
 
-      itensComPreco.push({ variacaoId, quantidade, preco });
+      itensComPreco.push({
+        variacaoId,
+        quantidade,
+        preco,
+      });
 
-      valorTotal += preco * quantidade;
+      valorTotal +=
+        preco * quantidade;
     }
 
-    const pedidoResult = await client.query(
-      `INSERT INTO pedido (
-        usuario_id,
-        forma_pagamento,
-        valor_total
-      )
-      VALUES ($1, $2, $3)
-      RETURNING *`,
-      [usuarioId, formaPagamento, valorTotal]
-    );
+    const pedidoResult =
+      await client.query(
+        `INSERT INTO pedido (
+          usuario_id,
+          forma_pagamento,
+          valor_total,
+          cep_entrega,
+          logradouro_entrega,
+          numero_entrega,
+          complemento_entrega,
+          bairro_entrega,
+          cidade_entrega,
+          estado_entrega
+        )
+        VALUES (
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6,
+          $7,
+          $8,
+          $9,
+          $10
+        )
+        RETURNING *`,
+        [
+          usuarioId,
+          formaPagamento,
+          valorTotal,
 
-    const pedido = pedidoResult.rows[0];
+          usuario.cep,
+          usuario.logradouro,
+          usuario.numero,
+          usuario.complemento,
+          usuario.bairro,
+          usuario.cidade,
+          usuario.estado,
+        ]
+      );
+
+    const pedido =
+      pedidoResult.rows[0];
 
     for (const item of itensComPreco) {
       await client.query(
@@ -87,21 +231,37 @@ async function criarPedidoComItens({ usuarioId, formaPagamento, itens }) {
           preco_unitario
         )
         VALUES ($1, $2, $3, $4)`,
-        [pedido.id, item.variacaoId, item.quantidade, item.preco]
+        [
+          pedido.id,
+          item.variacaoId,
+          item.quantidade,
+          item.preco,
+        ]
       );
 
-      const estoqueResult = await client.query(
-        `UPDATE variacao
-         SET estoque = estoque - $1
-         WHERE id = $2
-           AND estoque >= $1
-         RETURNING id`,
-        [item.quantidade, item.variacaoId]
-      );
+      const estoqueResult =
+        await client.query(
+          `UPDATE variacao
+           SET estoque = estoque - $1
+           WHERE id = $2
+             AND estoque >= $1
+           RETURNING id`,
+          [
+            item.quantidade,
+            item.variacaoId,
+          ]
+        );
 
-      if (estoqueResult.rowCount === 0) {
-        const erro = new Error(`Estoque insuficiente para a variação ${item.variacaoId}.`);
-        erro.code = 'INSUFFICIENT_STOCK';
+      if (
+        estoqueResult.rowCount === 0
+      ) {
+        const erro = new Error(
+          `Estoque insuficiente para a variação ${item.variacaoId}.`
+        );
+
+        erro.code =
+          'INSUFFICIENT_STOCK';
+
         throw erro;
       }
     }
@@ -111,25 +271,39 @@ async function criarPedidoComItens({ usuarioId, formaPagamento, itens }) {
     return pedido;
   } catch (err) {
     await client.query('ROLLBACK');
+
     throw err;
   } finally {
     client.release();
   }
 }
 
-async function atualizarStatusPedido(id, status) {
+async function atualizarStatusPedido(
+  id,
+  status
+) {
   const result = await pool.query(
-    `UPDATE pedido SET status = $1 WHERE id = $2 RETURNING *`,
+    `UPDATE pedido
+     SET status = $1
+     WHERE id = $2
+     RETURNING *`,
     [status, id]
   );
+
   return result.rows[0];
 }
 
-async function listarPedidosPorUsuario(usuarioId) {
+async function listarPedidosPorUsuario(
+  usuarioId
+) {
   const result = await pool.query(
-    `SELECT * FROM pedido WHERE usuario_id = $1 ORDER BY created_at DESC`,
+    `SELECT *
+     FROM pedido
+     WHERE usuario_id = $1
+     ORDER BY created_at DESC`,
     [usuarioId]
   );
+
   return result.rows;
 }
 
@@ -140,7 +314,8 @@ async function listarTodosPedidos() {
        u.nome AS usuario_nome,
        u.email AS usuario_email
      FROM pedido p
-     JOIN usuario u ON u.id = p.usuario_id
+     JOIN usuario u
+       ON u.id = p.usuario_id
      ORDER BY p.created_at DESC`
   );
 
@@ -160,9 +335,21 @@ async function buscarPedidoComItens(id) {
              'preco_unitario', ip.preco_unitario,
              'produto', pr.nome,
              'cor', v.cor,
-             'tamanho', v.tamanho
+             'tamanho', v.tamanho,
+
+             'imagem_url',
+             (
+               SELECT pi.url
+               FROM produto_imagem pi
+               WHERE pi.produto_id = pr.id
+               ORDER BY pi.ordem
+               LIMIT 1
+             )
            )
-         ) FILTER (WHERE ip.id IS NOT NULL),
+           ORDER BY ip.id
+         ) FILTER (
+           WHERE ip.id IS NOT NULL
+         ),
          '[]'
        ) AS itens
      FROM pedido p
@@ -180,6 +367,120 @@ async function buscarPedidoComItens(id) {
   return pedidoResult.rows[0];
 }
 
+async function cancelarPedido(
+  pedidoId,
+  usuarioId
+) {
+  const client =
+    await pool.connect();
+
+  try {
+    await client.query(
+      'BEGIN'
+    );
+
+    const pedidoResult =
+      await client.query(
+        `SELECT
+           id,
+           usuario_id,
+           status
+         FROM pedido
+         WHERE id = $1
+         FOR UPDATE`,
+        [pedidoId]
+      );
+
+    const pedido =
+      pedidoResult.rows[0];
+
+    if (!pedido) {
+      const erro = new Error(
+        'Pedido não encontrado.'
+      );
+
+      erro.code =
+        'ORDER_NOT_FOUND';
+
+      throw erro;
+    }
+
+    if (
+      pedido.usuario_id !==
+      usuarioId
+    ) {
+      const erro = new Error(
+        'Você não pode cancelar este pedido.'
+      );
+
+      erro.code =
+        'ORDER_FORBIDDEN';
+
+      throw erro;
+    }
+
+    if (
+      pedido.status !==
+      'recebido'
+    ) {
+      const erro = new Error(
+        'Este pedido não pode mais ser cancelado.'
+      );
+
+      erro.code =
+        'ORDER_CANNOT_CANCEL';
+
+      throw erro;
+    }
+
+    const itensResult =
+      await client.query(
+        `SELECT
+           variacao_id,
+           quantidade
+         FROM item_pedido
+         WHERE pedido_id = $1`,
+        [pedidoId]
+      );
+
+    for (const item of itensResult.rows) {
+      await client.query(
+        `UPDATE variacao
+         SET estoque = estoque + $1
+         WHERE id = $2`,
+        [
+          item.quantidade,
+          item.variacao_id,
+        ]
+      );
+    }
+
+    const pedidoAtualizadoResult =
+      await client.query(
+        `UPDATE pedido
+         SET status = 'cancelado'
+         WHERE id = $1
+         RETURNING *`,
+        [pedidoId]
+      );
+
+    await client.query(
+      'COMMIT'
+    );
+
+    return pedidoAtualizadoResult
+      .rows[0];
+  } catch (err) {
+    await client.query(
+      'ROLLBACK'
+    );
+
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   buscarVariacaoComPreco,
   criarPedidoComItens,
@@ -187,4 +488,5 @@ module.exports = {
   listarPedidosPorUsuario,
   listarTodosPedidos,
   buscarPedidoComItens,
+  cancelarPedido,
 };

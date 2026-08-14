@@ -25,3 +25,9 @@ export function atualizarStatusPedido(id, dados) {
 export function listarTodosPedidos() {
   return api('/orders/admin');
 }
+
+export function cancelarPedido(id) {
+  return api(`/orders/${id}/cancel`, {
+    method: 'PATCH',
+  });
+}

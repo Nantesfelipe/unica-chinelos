@@ -8,6 +8,7 @@ import {
   LogOut,
   ShoppingBag,
   Save,
+  AlertCircle,
 } from 'lucide-react';
 
 import useAuth from '../../hooks/useAuth';
@@ -45,6 +46,32 @@ function Perfil() {
     navigate('/');
   }
 
+  const camposObrigatorios = [
+    'nome',
+    'telefone',
+    'cpf',
+    'cep',
+    'logradouro',
+    'numero',
+    'bairro',
+    'cidade',
+    'estado',
+  ];
+
+  const perfilCompleto =
+    camposObrigatorios.every(
+      (campo) => {
+        const valor =
+          form[campo];
+
+        return (
+          valor !== null &&
+          valor !== undefined &&
+          String(valor).trim() !== ''
+        );
+      }
+    );
+
   if (!usuario) {
     return (
       <section className="max-w-4xl mx-auto px-6 py-20 text-center">
@@ -76,6 +103,29 @@ function Perfil() {
       <h1 className="text-3xl font-semibold text-[#171511] mt-1 mb-8">
         Meu perfil
       </h1>
+
+      {!perfilCompleto && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle
+              size={20}
+              className="text-amber-600 shrink-0 mt-0.5"
+            />
+
+            <div>
+              <p className="text-sm font-medium text-amber-900">
+                Complete seu perfil
+              </p>
+
+              <p className="text-sm text-amber-800 mt-1">
+                Preencha seus dados pessoais
+                e endereço para continuar
+                com suas compras.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <form
         onSubmit={salvarPerfil}

@@ -6,7 +6,8 @@ const {
   atualizarStatus,
   meusPedidos,
   todosPedidos,
-  detalhesPedido
+  detalhesPedido,
+  cancelarPedido,
 } = require('../controllers/orderController');
 
 const { autenticar, apenasAdmin } = require('../middlewares/authMiddleware');
@@ -89,6 +90,12 @@ router.get('/admin', autenticar, apenasAdmin, todosPedidos);
  *         description: Erro interno do servidor.
  */
 router.get('/:id', autenticar, detalhesPedido);
+
+router.patch(
+  '/:id/cancel',
+  autenticar,
+  cancelarPedido
+);
 
 /**
  * @swagger

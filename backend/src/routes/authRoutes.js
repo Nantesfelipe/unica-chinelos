@@ -6,7 +6,9 @@ const router = express.Router();
 const {
   cadastrar,
   login,
-  usuarioAtual
+  usuarioAtual,
+  solicitarRecuperacaoSenha,
+  redefinirSenha,
 } = require('../controllers/authController');
 
 const {
@@ -112,6 +114,18 @@ router.post('/cadastro', cadastrar);
  */
 router.post('/login', login);
 
+router.post(
+  '/recuperar-senha',
+  solicitarRecuperacaoSenha
+);
+
+router.post(
+  '/redefinir-senha',
+  redefinirSenha
+);
+
 router.get('/me', autenticar, usuarioAtual);
+
+
 
 module.exports = router;

@@ -222,6 +222,64 @@ async function buscarClienteComPedidos(id) {
   return result.rows[0];
 }
 
+async function criarTokenRecuperacao(
+  email,
+  token,
+  expiraEm
+) {
+  const result = await pool.query(
+    `UPDATE usuario
+     SET
+       reset_token = $1,
+       reset_token_expires_at = $2
+     WHERE email = $3
+     RETURNING id, email`,
+    [
+      token,
+      expiraEm,
+      email,
+    ]
+  );
+
+  return result.rows[0];
+}
+
+async function buscarPorTokenRecuperacao(
+  token
+) {
+  const result = await pool.query(
+    `SELECT *
+     FROM usuario
+     WHERE reset_token = $1
+       AND reset_token_expires_at > NOW()`,
+    [token]
+  );
+
+  return result.rows[0];
+}
+
+async function atualizarSenhaPorToken(
+  id,
+  senhaHash
+) {
+  const result = await pool.query(
+    `UPDATE usuario
+     SET
+       senha_hash = $1,
+       reset_token = NULL,
+       reset_token_expires_at = NULL
+     WHERE id = $2
+     RETURNING
+       id,
+       email`,
+    [
+      senhaHash,
+      id,
+    ]
+  );
+
+  return result.rows[0];
+}
 module.exports = {
   criarUsuario,
   buscarPorEmail,
@@ -229,4 +287,7 @@ module.exports = {
   atualizarPerfil,
   listarClientes,
   buscarClienteComPedidos,
+  criarTokenRecuperacao,
+  buscarPorTokenRecuperacao,
+  atualizarSenhaPorToken,
 };

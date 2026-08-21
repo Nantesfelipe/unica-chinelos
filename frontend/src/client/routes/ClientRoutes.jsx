@@ -9,6 +9,8 @@ import Cadastro from '../pages/Cadastro';
 import Checkout from '../pages/Checkout';
 import Perfil from '../pages/Perfil';
 import MeusPedidos from '../pages/MeusPedidos';
+import RecuperarSenha from '../pages/RecuperarSenha';
+import RedefinirSenha from '../pages/RedefinirSenha';
 
 function ClientRoutes() {
   return (
@@ -22,7 +24,12 @@ function ClientRoutes() {
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/perfil" element={<Perfil />} />
       <Route path="/pedidos" element={<MeusPedidos />} />
-    </Route>
+      <Route path="/recuperar-senha" element={<RecuperarSenha />} />
+      <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+        
+      </Route>
+
+    
   );
 }
 

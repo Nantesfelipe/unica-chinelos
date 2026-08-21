@@ -18,21 +18,14 @@ export function obterUsuarioAtual() {
   return api('/auth/me');
 }
 
-export function solicitarRecuperacaoSenha(
-  email
-) {
+export function solicitarRecuperacaoSenha(email) {
   return api('/auth/recuperar-senha', {
     method: 'POST',
-    body: JSON.stringify({
-      email,
-    }),
+    body: JSON.stringify({ email }),
   });
 }
 
-export function redefinirSenha(
-  token,
-  senha
-) {
+export function redefinirSenha(token, senha) {
   return api('/auth/redefinir-senha', {
     method: 'POST',
     body: JSON.stringify({

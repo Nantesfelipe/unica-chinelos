@@ -1,54 +1,49 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-
-import useAuth from '../../hooks/useAuth';
+import { Link } from 'react-router-dom';
 
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 
 import {
+  solicitarRecuperacaoSenha,
+} from '../../services/auth.service';
+
+import {
   validarEmail,
-  validarSenha,
 } from '../../utils/validations';
 
-function Login() {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-
+function RecuperarSenha() {
   const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
 
   const [erro, setErro] = useState('');
-  const [carregando, setCarregando] = useState(false);
+  const [sucesso, setSucesso] = useState('');
+
+  const [carregando, setCarregando] =
+    useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
 
     setErro('');
+    setSucesso('');
 
     if (!validarEmail(email)) {
       setErro('Digite um e-mail válido.');
       return;
     }
 
-    if (!validarSenha(senha)) {
-      setErro(
-        'A senha deve possuir pelo menos 6 caracteres.'
-      );
-      return;
-    }
-
     setCarregando(true);
 
     try {
-      const resposta = await login(email, senha);
+      const resposta =
+        await solicitarRecuperacaoSenha(email);
 
-      const destino =
-        resposta.usuario.tipo === 'admin'
-          ? '/admin'
-          : '/';
+      setSucesso(
+        resposta.mensagem ||
+          'Se o e-mail estiver cadastrado, você receberá as instruções para recuperar sua senha.'
+      );
 
-      navigate(destino);
+      setEmail('');
     } catch (error) {
       setErro(error.message);
     } finally {
@@ -68,11 +63,12 @@ function Login() {
           </p>
 
           <h1 className="text-2xl font-semibold text-[#171511] mt-1">
-            Entrar
+            Recuperar senha
           </h1>
 
           <p className="text-sm text-[#8e8980] mt-2">
-            Acesse sua conta.
+            Informe seu e-mail para receber as instruções
+            de recuperação.
           </p>
         </div>
 
@@ -80,6 +76,14 @@ function Login() {
           <div className="bg-red-50 border border-red-200 rounded-md px-4 py-3 mb-5">
             <p className="text-sm text-red-700">
               {erro}
+            </p>
+          </div>
+        )}
+
+        {sucesso && (
+          <div className="bg-green-50 border border-green-200 rounded-md px-4 py-3 mb-5">
+            <p className="text-sm text-green-700">
+              {sucesso}
             </p>
           </div>
         )}
@@ -96,27 +100,6 @@ function Login() {
             }
             required
           />
-
-          <Input
-            label="Senha"
-            name="senha"
-            type="password"
-            placeholder="Digite sua senha"
-            value={senha}
-            onChange={(event) =>
-              setSenha(event.target.value)
-            }
-            required
-          />
-        </div>
-
-        <div className="flex justify-end mt-3">
-          <Link
-            to="/recuperar-senha"
-            className="text-sm text-[#746c5c] hover:text-[#171511] transition-colors"
-          >
-            Esqueci minha senha
-          </Link>
         </div>
 
         <div className="mt-6">
@@ -124,22 +107,23 @@ function Login() {
             type="submit"
             disabled={carregando}
           >
-            {carregando ? 'Entrando...' : 'Entrar'}
+            {carregando
+              ? 'Enviando...'
+              : 'Enviar instruções'}
           </Button>
         </div>
 
-        <p className="text-sm text-[#8e8980] text-center mt-6">
-          Ainda não possui uma conta?{' '}
+        <div className="text-center mt-6">
           <Link
-            to="/cadastro"
-            className="text-[#746c5c] font-medium hover:text-[#171511] transition-colors"
+            to="/login"
+            className="text-sm text-[#746c5c] font-medium hover:text-[#171511]"
           >
-            Cadastre-se
+            Voltar para o login
           </Link>
-        </p>
+        </div>
       </form>
     </section>
   );
 }
 
-export default Login;
+export default RecuperarSenha;

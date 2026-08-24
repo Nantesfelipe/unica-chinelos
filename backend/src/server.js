@@ -8,6 +8,8 @@ const orderRoutes = require('./routes/orderRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const productTypeRoutes = require('./routes/productTypeRoutes');
 const userRoutes = require('./routes/userRoutes');
+const cupomRoutes = require('./routes/cupomRoutes');
+const shippingRoutes = require('./routes/shippingRoutes');
 const cors = require('cors');
 
 
@@ -26,6 +28,8 @@ app.use('/orders', orderRoutes);
 app.use('/categories', categoryRoutes);
 app.use('/product-types', productTypeRoutes);
 app.use('/users', userRoutes);
+app.use('/coupons', cupomRoutes);
+app.use('/shipping', shippingRoutes);
 
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

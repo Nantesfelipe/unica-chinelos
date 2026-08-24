@@ -5,7 +5,7 @@ const { criar, listar, buscarPorId, atualizar, desativar, reativar, excluirDefin
 
 const { autenticar, apenasAdmin } = require('../middlewares/authMiddleware');
 const variationRoutes = require('./variationRoutes');
-
+const avaliacaoRoutes = require('./avaliacaoRoutes')
 /**
  * @swagger
  * /products:
@@ -76,6 +76,7 @@ router.get('/:id', buscarPorId);
  *         description: Erro interno do servidor.
  */
 router.post('/', autenticar, apenasAdmin, criar);
+
 
 /**
  * @swagger
@@ -149,6 +150,7 @@ router.delete('/:id', autenticar, apenasAdmin, desativar);
 router.delete('/:id/definitivo', autenticar, apenasAdmin, excluirDefinitivo);
 router.patch('/:id/reativar', autenticar, apenasAdmin, reativar);
 
+router.use('/:id/reviews', avaliacaoRoutes);
 router.use('/:id/variations', variationRoutes);
 router.use('/:id/images', productImageRoutes);
 

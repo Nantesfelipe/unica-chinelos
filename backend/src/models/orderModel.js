@@ -520,6 +520,134 @@ async function atualizarMercadoPagoId(
   return result.rows[0];
 }
 
+/*
+ * Status que ainda permitem o
+ * cancelamento do pedido pelo
+ * próprio cliente.
+ */
+const STATUS_CANCELAVEIS = [
+  'recebido',
+  'em_separacao',
+];
+
+async function cancelarPedido(
+  pedidoId,
+  usuarioId
+) {
+  const client =
+    await pool.connect();
+
+  try {
+    await client.query(
+      'BEGIN'
+    );
+
+    const pedidoResult =
+      await client.query(
+        `SELECT
+           id,
+           usuario_id,
+           status
+         FROM pedido
+         WHERE id = $1
+         FOR UPDATE`,
+        [pedidoId]
+      );
+
+    const pedido =
+      pedidoResult.rows[0];
+
+    if (!pedido) {
+      const erro =
+        new Error(
+          'Pedido não encontrado.'
+        );
+
+      erro.code =
+        'ORDER_NOT_FOUND';
+
+      throw erro;
+    }
+
+    if (
+      pedido.usuario_id !==
+      usuarioId
+    ) {
+      const erro =
+        new Error(
+          'Acesso negado a este pedido.'
+        );
+
+      erro.code =
+        'ORDER_FORBIDDEN';
+
+      throw erro;
+    }
+
+    if (
+      !STATUS_CANCELAVEIS.includes(
+        pedido.status
+      )
+    ) {
+      const erro =
+        new Error(
+          'Este pedido não pode mais ser cancelado.'
+        );
+
+      erro.code =
+        'ORDER_CANNOT_CANCEL';
+
+      throw erro;
+    }
+
+    const itensResult =
+      await client.query(
+        `SELECT
+           variacao_id,
+           quantidade
+         FROM item_pedido
+         WHERE pedido_id = $1`,
+        [pedidoId]
+      );
+
+    for (const item of itensResult.rows) {
+      await client.query(
+        `UPDATE variacao
+         SET estoque =
+           estoque + $1
+         WHERE id = $2`,
+        [
+          item.quantidade,
+          item.variacao_id,
+        ]
+      );
+    }
+
+    const pedidoAtualizadoResult =
+      await client.query(
+        `UPDATE pedido
+         SET status = 'cancelado'
+         WHERE id = $1
+         RETURNING *`,
+        [pedidoId]
+      );
+
+    await client.query(
+      'COMMIT'
+    );
+
+    return pedidoAtualizadoResult.rows[0];
+  } catch (err) {
+    await client.query(
+      'ROLLBACK'
+    );
+
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   buscarVariacaoComPreco,
   criarPedidoComItens,
@@ -529,4 +657,5 @@ module.exports = {
   listarTodosPedidos,
   atualizarMercadoPagoId,
   buscarPedidoComItens,
+  cancelarPedido,
 };

@@ -1,5 +1,5 @@
+
 const {
-  buscarVariacaoComPreco,
   criarPedidoComItens,
   devolverEstoquePedido,
   atualizarMercadoPagoId,
@@ -7,8 +7,8 @@ const {
   listarPedidosPorUsuario,
   listarTodosPedidos,
   buscarPedidoComItens,
+  cancelarPedido,
 } = require('../models/orderModel');
-
 const {
   MercadoPagoConfig,
   Preference,

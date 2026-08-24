@@ -9,8 +9,19 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  options: '-c client_encoding=UTF8',
+  client_encoding: 'UTF8',
 });
 
+pool.on('connect', async (client) => {
+    const banco = await client.query(`
+        SELECT 
+            current_database(),
+            current_user,
+            current_setting('server_encoding'),
+            current_setting('client_encoding');
+    `);
+
+    console.log(banco.rows);
+});
 
 module.exports = pool;

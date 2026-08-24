@@ -28,6 +28,19 @@ const transporter =
     },
   });
 
+transporter.verify((erro) => {
+  if (erro) {
+    console.error(
+      'SMTP não configurado corretamente:',
+      erro
+    );
+  } else {
+    console.log(
+      'SMTP conectado e pronto para enviar e-mails.'
+    );
+  }
+});
+
 async function cadastrar(req, res) {
   try {
     const {
@@ -38,7 +51,8 @@ async function cadastrar(req, res) {
 
     if (!nome || !email || !senha) {
       return res.status(400).json({
-        erro: 'Nome, email e senha são obrigatórios.',
+        erro:
+          'Nome, email e senha são obrigatórios.',
       });
     }
 
@@ -47,7 +61,8 @@ async function cadastrar(req, res) {
 
     if (usuarioExistente) {
       return res.status(409).json({
-        erro: 'Este e-mail já está cadastrado.',
+        erro:
+          'Este e-mail já está cadastrado.',
       });
     }
 
@@ -68,6 +83,11 @@ async function cadastrar(req, res) {
       novoUsuario
     );
   } catch (err) {
+    console.error(
+      'Erro ao cadastrar usuário:',
+      err
+    );
+
     res.status(500).json({
       erro: err.message,
     });
@@ -83,7 +103,8 @@ async function login(req, res) {
 
     if (!email || !senha) {
       return res.status(400).json({
-        erro: 'Email e senha são obrigatórios.',
+        erro:
+          'Email e senha são obrigatórios.',
       });
     }
 
@@ -92,7 +113,8 @@ async function login(req, res) {
 
     if (!usuario) {
       return res.status(401).json({
-        erro: 'Email ou senha inválidos.',
+        erro:
+          'Email ou senha inválidos.',
       });
     }
 
@@ -104,7 +126,8 @@ async function login(req, res) {
 
     if (!senhaCorreta) {
       return res.status(401).json({
-        erro: 'Email ou senha inválidos.',
+        erro:
+          'Email ou senha inválidos.',
       });
     }
 
@@ -127,6 +150,7 @@ async function login(req, res) {
         nome: usuario.nome,
         email: usuario.email,
         tipo: usuario.tipo,
+
         created_at:
           usuario.created_at,
 
@@ -159,6 +183,11 @@ async function login(req, res) {
       },
     });
   } catch (err) {
+    console.error(
+      'Erro no login:',
+      err
+    );
+
     res.status(500).json({
       erro: err.message,
     });
@@ -177,12 +206,18 @@ async function usuarioAtual(
 
     if (!usuario) {
       return res.status(404).json({
-        erro: 'Usuário não encontrado.',
+        erro:
+          'Usuário não encontrado.',
       });
     }
 
     res.json(usuario);
   } catch (err) {
+    console.error(
+      'Erro ao buscar usuário atual:',
+      err
+    );
+
     res.status(500).json({
       erro: err.message,
     });
@@ -199,12 +234,15 @@ async function solicitarRecuperacaoSenha(
 
     if (!email) {
       return res.status(400).json({
-        erro: 'Informe seu e-mail.',
+        erro:
+          'Informe seu e-mail.',
       });
     }
 
     const emailNormalizado =
-      email.trim().toLowerCase();
+      email
+        .trim()
+        .toLowerCase();
 
     const usuario =
       await buscarPorEmail(
@@ -223,7 +261,9 @@ async function solicitarRecuperacaoSenha(
     }
 
     const token =
-      crypto.randomBytes(32).toString('hex');
+      crypto
+        .randomBytes(32)
+        .toString('hex');
 
     const expiraEm =
       new Date(
@@ -244,14 +284,18 @@ async function solicitarRecuperacaoSenha(
     const link =
       `${frontendUrl}/redefinir-senha?token=${token}`;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: emailNormalizado,
+    const resultadoEmail =
+      await transporter.sendMail({
+        from:
+          process.env.EMAIL_FROM,
 
-      subject:
-        'Recuperação de senha - Única Conceitos',
+        to:
+          emailNormalizado,
 
-      text: `
+        subject:
+          'Recuperação de senha - Única Conceitos',
+
+        text: `
 Olá, ${usuario.nome}!
 
 Recebemos uma solicitação para redefinir a senha da sua conta na Única Conceitos.
@@ -265,148 +309,176 @@ Este link é válido por 30 minutos.
 Se você não solicitou a recuperação da senha, ignore este e-mail.
 
 Única Conceitos
-      `.trim(),
+        `.trim(),
 
-      html: `
-        <!DOCTYPE html>
-        <html lang="pt-BR">
-          <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>Recuperação de senha</title>
-          </head>
+        html: `
+          <!DOCTYPE html>
+          <html lang="pt-BR">
+            <head>
+              <meta charset="UTF-8" />
 
-          <body
-            style="
-              margin: 0;
-              padding: 0;
-              background: #e2dacc;
-              font-family: Arial, sans-serif;
-            "
-          >
-            <div
+              <meta
+                name="viewport"
+                content="width=device-width, initial-scale=1.0"
+              />
+
+              <title>
+                Recuperação de senha
+              </title>
+            </head>
+
+            <body
               style="
-                max-width: 600px;
-                margin: 40px auto;
-                background: #ffffff;
-                border-radius: 12px;
-                overflow: hidden;
+                margin: 0;
+                padding: 0;
+                background: #e2dacc;
+                font-family: Arial, sans-serif;
               "
             >
               <div
                 style="
-                  background: #171511;
-                  padding: 28px;
-                  text-align: center;
+                  max-width: 600px;
+                  margin: 40px auto;
+                  background: #ffffff;
+                  border-radius: 12px;
+                  overflow: hidden;
                 "
               >
-                <h1
+                <div
                   style="
-                    margin: 0;
-                    color: #e2dacc;
-                    font-size: 24px;
+                    background: #171511;
+                    padding: 28px;
+                    text-align: center;
                   "
                 >
-                  Única Conceitos
-                </h1>
-              </div>
-
-              <div
-                style="
-                  padding: 32px;
-                  color: #171511;
-                "
-              >
-                <h2
-                  style="
-                    margin-top: 0;
-                    font-size: 22px;
-                  "
-                >
-                  Recuperação de senha
-                </h2>
-
-                <p>
-                  Olá, ${usuario.nome}!
-                </p>
-
-                <p
-                  style="
-                    color: #746c5c;
-                    line-height: 1.6;
-                  "
-                >
-                  Recebemos uma solicitação para
-                  redefinir a senha da sua conta.
-                </p>
+                  <h1
+                    style="
+                      margin: 0;
+                      color: #e2dacc;
+                      font-size: 24px;
+                    "
+                  >
+                    Única Conceitos
+                  </h1>
+                </div>
 
                 <div
                   style="
-                    text-align: center;
-                    margin: 30px 0;
+                    padding: 32px;
+                    color: #171511;
                   "
                 >
-                  <a
-                    href="${link}"
+                  <h2
                     style="
-                      display: inline-block;
-                      padding: 14px 24px;
-                      background: #171511;
-                      color: #e2dacc;
-                      text-decoration: none;
-                      border-radius: 6px;
-                      font-weight: bold;
+                      margin-top: 0;
+                      font-size: 22px;
                     "
                   >
-                    Redefinir minha senha
-                  </a>
+                    Recuperação de senha
+                  </h2>
+
+                  <p>
+                    Olá, ${usuario.nome}!
+                  </p>
+
+                  <p
+                    style="
+                      color: #746c5c;
+                      line-height: 1.6;
+                    "
+                  >
+                    Recebemos uma solicitação
+                    para redefinir a senha
+                    da sua conta.
+                  </p>
+
+                  <div
+                    style="
+                      text-align: center;
+                      margin: 30px 0;
+                    "
+                  >
+                    <a
+                      href="${link}"
+                      style="
+                        display: inline-block;
+                        padding: 14px 24px;
+                        background: #171511;
+                        color: #e2dacc;
+                        text-decoration: none;
+                        border-radius: 6px;
+                        font-weight: bold;
+                      "
+                    >
+                      Redefinir minha senha
+                    </a>
+                  </div>
+
+                  <p
+                    style="
+                      color: #8e8980;
+                      font-size: 14px;
+                      line-height: 1.6;
+                    "
+                  >
+                    Este link é válido por
+                    <strong>
+                      30 minutos
+                    </strong>.
+                  </p>
+
+                  <p
+                    style="
+                      color: #8e8980;
+                      font-size: 14px;
+                      line-height: 1.6;
+                    "
+                  >
+                    Se você não solicitou
+                    a recuperação da senha,
+                    ignore este e-mail.
+                  </p>
+
+                  <hr
+                    style="
+                      margin: 30px 0;
+                      border: 0;
+                      border-top: 1px solid #e2dacc;
+                    "
+                  />
+
+                  <p
+                    style="
+                      margin: 0;
+                      color: #8e8980;
+                      font-size: 12px;
+                    "
+                  >
+                    Única Conceitos
+                  </p>
                 </div>
-
-                <p
-                  style="
-                    color: #8e8980;
-                    font-size: 14px;
-                    line-height: 1.6;
-                  "
-                >
-                  Este link é válido por
-                  <strong>30 minutos</strong>.
-                </p>
-
-                <p
-                  style="
-                    color: #8e8980;
-                    font-size: 14px;
-                    line-height: 1.6;
-                  "
-                >
-                  Se você não solicitou a recuperação
-                  da senha, ignore este e-mail.
-                </p>
-
-                <hr
-                  style="
-                    margin: 30px 0;
-                    border: 0;
-                    border-top: 1px solid #e2dacc;
-                  "
-                />
-
-                <p
-                  style="
-                    margin: 0;
-                    color: #8e8980;
-                    font-size: 12px;
-                  "
-                >
-                  Única Conceitos
-                </p>
               </div>
-            </div>
-          </body>
-        </html>
-      `,
-    });
+            </body>
+          </html>
+        `,
+      });
+
+    console.log(
+      'Resultado do envio:',
+      {
+        accepted:
+          resultadoEmail.accepted,
+
+        rejected:
+          resultadoEmail.rejected,
+
+        messageId:
+          resultadoEmail.messageId,
+
+        response:
+          resultadoEmail.response,
+      }
+    );
 
     res.json({
       mensagem:
@@ -485,6 +557,11 @@ async function redefinirSenha(
         'Senha redefinida com sucesso.',
     });
   } catch (err) {
+    console.error(
+      'Erro ao redefinir senha:',
+      err
+    );
+
     res.status(500).json({
       erro: err.message,
     });

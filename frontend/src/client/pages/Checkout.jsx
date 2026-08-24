@@ -32,7 +32,6 @@ function Checkout() {
   const {
     carrinho,
     totalCarrinho,
-    limparCarrinho,
   } = useCart();
 
   const [
@@ -87,6 +86,17 @@ function Checkout() {
       return;
     }
 
+    if (
+      !carrinho ||
+      carrinho.length === 0
+    ) {
+      setErro(
+        'Seu carrinho está vazio.'
+      );
+
+      return;
+    }
+
     setErro('');
     setCarregando(true);
 
@@ -102,29 +112,52 @@ function Checkout() {
           })
         );
 
-      await finalizarPedido({
-        itens,
+      const resposta =
+        await finalizarPedido({
+          itens,
 
-        /*
-         * Mantido temporariamente porque
-         * o gateway ainda será implementado.
-         */
-        formaPagamento: 'pix',
-      });
+          /*
+           * Mantido temporariamente para
+           * compatibilidade com a estrutura
+           * atual do banco.
+           *
+           * O método real de pagamento será
+           * definido pelo Mercado Pago.
+           */
+          formaPagamento: 'pix',
+        });
 
-      limparCarrinho();
+      if (
+        !resposta ||
+        !resposta.initPoint
+      ) {
+        throw new Error(
+          'Não foi possível iniciar o pagamento.'
+        );
+      }
 
-      navigate('/pedidos');
+      /*
+       * O carrinho NÃO é limpo aqui.
+       *
+       * Vamos limpar somente quando tivermos
+       * o retorno adequado do pagamento.
+       */
+      window.location.href =
+        resposta.initPoint;
     } catch (error) {
       setErro(
-        error.message
+        error.message ||
+          'Não foi possível iniciar o pagamento.'
       );
-    } finally {
+
       setCarregando(false);
     }
   }
 
-  if (carrinho.length === 0) {
+  if (
+    !carrinho ||
+    carrinho.length === 0
+  ) {
     return (
       <section className="max-w-4xl mx-auto px-6 py-20 text-center">
         <h1 className="text-2xl font-semibold text-[#171511]">
@@ -144,7 +177,7 @@ function Checkout() {
   if (carregando) {
     return (
       <section className="max-w-4xl mx-auto px-6 py-16">
-        <Loading text="Finalizando pedido..." />
+        <Loading text="Preparando pagamento..." />
       </section>
     );
   }
@@ -327,7 +360,7 @@ function Checkout() {
               !perfilTemEndereco()
             }
           >
-            Finalizar pedido
+            Ir para pagamento
           </Button>
         </div>
       </div>

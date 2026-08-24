@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
 
+import {
+  listarVariacoes,
+  criarVariacao,
+} from '../../services/product.service';
+
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
@@ -15,6 +20,12 @@ const FORM_VAZIO = {
   variacoes: [],
 };
 
+const VARIACAO_VAZIA = {
+  tamanho: '',
+  cor: '',
+  estoque: '',
+};
+
 function ModalProduto({
   aberto,
   onFechar,
@@ -23,58 +34,169 @@ function ModalProduto({
   categorias,
   tiposProduto,
 }) {
-  const [form, setForm] = useState(FORM_VAZIO);
-  const [erro, setErro] = useState('');
-  const [salvando, setSalvando] = useState(false);
+  const [form, setForm] =
+    useState(FORM_VAZIO);
+
+  const [erro, setErro] =
+    useState('');
+
+  const [salvando, setSalvando] =
+    useState(false);
+
+  const [
+    carregandoVariacoes,
+    setCarregandoVariacoes,
+  ] = useState(false);
 
   useEffect(() => {
-    if (produtoEditando) {
-      setForm({
-        nome: produtoEditando.nome || '',
-        descricao: produtoEditando.descricao || '',
-        preco: produtoEditando.preco || '',
-        categoriaId: produtoEditando.categoria_id || '',
-        tipoProdutoId:
-          produtoEditando.tipo_produto_id || '',
-        destaque: !!produtoEditando.destaque,
-        promocao: !!produtoEditando.promocao,
-        variacoes: [],
-      });
-    } else {
-      setForm(FORM_VAZIO);
+    async function prepararFormulario() {
+      if (!aberto) {
+        return;
+      }
+
+      setErro('');
+
+      if (!produtoEditando) {
+        setForm(FORM_VAZIO);
+        return;
+      }
+
+      setCarregandoVariacoes(true);
+
+      try {
+        const variacoes =
+          await listarVariacoes(
+            produtoEditando.id
+          );
+
+        setForm({
+          nome:
+            produtoEditando.nome || '',
+
+          descricao:
+            produtoEditando.descricao || '',
+
+          preco:
+            produtoEditando.preco || '',
+
+          categoriaId:
+            produtoEditando.categoria_id ||
+            '',
+
+          tipoProdutoId:
+            produtoEditando.tipo_produto_id ||
+            '',
+
+          destaque:
+            !!produtoEditando.destaque,
+
+          promocao:
+            !!produtoEditando.promocao,
+
+          variacoes:
+            Array.isArray(variacoes)
+              ? variacoes.map(
+                  (variacao) => ({
+                    id:
+                      variacao.id,
+
+                    tamanho:
+                      variacao.tamanho ||
+                      '',
+
+                    cor:
+                      variacao.cor || '',
+
+                    estoque:
+                      variacao.estoque ??
+                      '',
+                  })
+                )
+              : [],
+        });
+      } catch (error) {
+        setErro(
+          error.message
+        );
+
+        setForm({
+          nome:
+            produtoEditando.nome || '',
+
+          descricao:
+            produtoEditando.descricao || '',
+
+          preco:
+            produtoEditando.preco || '',
+
+          categoriaId:
+            produtoEditando.categoria_id ||
+            '',
+
+          tipoProdutoId:
+            produtoEditando.tipo_produto_id ||
+            '',
+
+          destaque:
+            !!produtoEditando.destaque,
+
+          promocao:
+            !!produtoEditando.promocao,
+
+          variacoes: [],
+        });
+      } finally {
+        setCarregandoVariacoes(
+          false
+        );
+      }
     }
 
-    setErro('');
-  }, [produtoEditando, aberto]);
+    prepararFormulario();
+  }, [
+    produtoEditando,
+    aberto,
+  ]);
 
-  function atualizarCampo(campo, valor) {
+  function atualizarCampo(
+    campo,
+    valor
+  ) {
     setForm((atual) => ({
       ...atual,
       [campo]: valor,
     }));
+
+    setErro('');
   }
 
   function adicionarVariacao() {
     setForm((atual) => ({
       ...atual,
+
       variacoes: [
         ...atual.variacoes,
         {
-          tamanho: '',
-          cor: '',
-          estoque: '',
+          ...VARIACAO_VAZIA,
         },
       ],
     }));
+
+    setErro('');
   }
 
   function removerVariacao(index) {
     setForm((atual) => ({
       ...atual,
-      variacoes: atual.variacoes.filter(
-        (_, i) => i !== index
-      ),
+
+      variacoes:
+        atual.variacoes.filter(
+          (_, i) =>
+            i !== index
+        ),
     }));
+
+    setErro('');
   }
 
   function atualizarVariacao(
@@ -84,20 +206,48 @@ function ModalProduto({
   ) {
     setForm((atual) => ({
       ...atual,
-      variacoes: atual.variacoes.map(
-        (variacao, i) =>
-          i === index
-            ? {
-                ...variacao,
-                [campo]: valor,
-              }
-            : variacao
-      ),
+
+      variacoes:
+        atual.variacoes.map(
+          (variacao, i) =>
+            i === index
+              ? {
+                  ...variacao,
+                  [campo]: valor,
+                }
+              : variacao
+        ),
     }));
+
+    setErro('');
   }
 
-  async function handleSubmit(event) {
+  function tipoEhCalcado() {
+    const tipoSelecionado =
+      tiposProduto.find(
+        (tipo) =>
+          Number(tipo.id) ===
+          Number(form.tipoProdutoId)
+      );
+
+    const nome =
+      tipoSelecionado?.nome
+        ?.trim()
+        .toLowerCase();
+
+    return (
+      nome === 'calçado' ||
+      nome === 'calçados' ||
+      nome === 'calcado' ||
+      nome === 'calcados'
+    );
+  }
+
+  async function handleSubmit(
+    event
+  ) {
     event.preventDefault();
+
     setErro('');
 
     if (
@@ -109,40 +259,43 @@ function ModalProduto({
       setErro(
         'Nome, preço, categoria e tipo de produto são obrigatórios.'
       );
+
       return;
     }
 
-    const tipoSelecionado =
-      tiposProduto.find(
-        (tipo) =>
-          Number(tipo.id) ===
-          Number(form.tipoProdutoId)
-      );
-
     const ehCalcado =
-      tipoSelecionado?.nome?.toLowerCase() ===
-      'calçados';
+      tipoEhCalcado();
 
     if (ehCalcado) {
-      for (const variacao of form.variacoes) {
-        if (!variacao.tamanho.trim()) {
+      for (
+        const variacao
+        of form.variacoes
+      ) {
+        if (
+          !variacao.tamanho.trim()
+        ) {
           setErro(
             'Informe o tamanho de todas as variações.'
           );
+
           return;
         }
 
-        const estoque = Number(
-          variacao.estoque
-        );
+        const estoque =
+          Number(
+            variacao.estoque
+          );
 
         if (
-          !Number.isInteger(estoque) ||
+          !Number.isInteger(
+            estoque
+          ) ||
           estoque < 0
         ) {
           setErro(
             'O estoque deve ser um número inteiro maior ou igual a zero.'
           );
+
           return;
         }
       }
@@ -152,38 +305,66 @@ function ModalProduto({
 
     try {
       await onSalvar({
-        nome: form.nome.trim(),
-        descricao: form.descricao.trim(),
-        preco: Number(form.preco),
-        categoriaId: Number(
-          form.categoriaId
-        ),
-        tipoProdutoId: Number(
-          form.tipoProdutoId
-        ),
-        destaque: form.destaque,
-        promocao: form.promocao,
-        variacoes: ehCalcado
-          ? form.variacoes.map(
-              (variacao) => ({
-                tamanho:
-                  variacao.tamanho.trim(),
-                cor:
-                  variacao.cor.trim() ||
-                  null,
-                estoque:
-                  Number(
-                    variacao.estoque
-                  ),
-              })
-            )
-          : [],
+        nome:
+          form.nome.trim(),
+
+        descricao:
+          form.descricao.trim(),
+
+        preco:
+          Number(form.preco),
+
+        categoriaId:
+          Number(
+            form.categoriaId
+          ),
+
+        tipoProdutoId:
+          Number(
+            form.tipoProdutoId
+          ),
+
+        destaque:
+          form.destaque,
+
+        promocao:
+          form.promocao,
+
+        variacoes:
+          ehCalcado
+            ? form.variacoes.map(
+                (variacao) => ({
+                  id:
+                    variacao.id,
+
+                  tamanho:
+                    variacao.tamanho.trim(),
+
+                  cor:
+                    variacao.cor.trim() ||
+                    null,
+
+                  estoque:
+                    Number(
+                      variacao.estoque
+                    ),
+                })
+              )
+            : [],
       });
     } catch (error) {
-      setErro(error.message);
+      setErro(
+        error.message
+      );
     } finally {
       setSalvando(false);
     }
+  }
+
+  if (
+    !aberto
+  ) {
+    return null;
   }
 
   return (
@@ -197,7 +378,9 @@ function ModalProduto({
       }
     >
       <form
-        onSubmit={handleSubmit}
+        onSubmit={
+          handleSubmit
+        }
         className="space-y-4"
       >
         {erro && (
@@ -227,7 +410,9 @@ function ModalProduto({
           </label>
 
           <textarea
-            value={form.descricao}
+            value={
+              form.descricao
+            }
             onChange={(e) =>
               atualizarCampo(
                 'descricao',
@@ -262,7 +447,9 @@ function ModalProduto({
             </label>
 
             <select
-              value={form.categoriaId}
+              value={
+                form.categoriaId
+              }
               onChange={(e) =>
                 atualizarCampo(
                   'categoriaId',
@@ -276,14 +463,16 @@ function ModalProduto({
                 Selecione
               </option>
 
-              {categorias.map((cat) => (
-                <option
-                  key={cat.id}
-                  value={cat.id}
-                >
-                  {cat.nome}
-                </option>
-              ))}
+              {categorias.map(
+                (cat) => (
+                  <option
+                    key={cat.id}
+                    value={cat.id}
+                  >
+                    {cat.nome}
+                  </option>
+                )
+              )}
             </select>
           </div>
 
@@ -293,7 +482,9 @@ function ModalProduto({
             </label>
 
             <select
-              value={form.tipoProdutoId}
+              value={
+                form.tipoProdutoId
+              }
               onChange={(e) =>
                 atualizarCampo(
                   'tipoProdutoId',
@@ -321,71 +512,68 @@ function ModalProduto({
           </div>
         </div>
 
-        {(() => {
-          const tipoSelecionado =
-            tiposProduto.find(
-              (tipo) =>
-                Number(tipo.id) ===
-                Number(
-                  form.tipoProdutoId
-                )
-            );
+        {tipoEhCalcado() && (
+          <div className="border-t border-[#8e8980]/20 pt-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div>
+                <h3 className="font-medium text-[#171511]">
+                  Tamanhos e estoque
+                </h3>
 
-          const ehCalcado =
-            tipoSelecionado?.nome?.toLowerCase() ===
-            'calçados';
-
-          if (!ehCalcado) {
-            return null;
-          }
-
-          return (
-            <div className="border-t border-[#8e8980]/20 pt-5">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                <div>
-                  <h3 className="font-medium text-[#171511]">
-                    Tamanhos e estoque
-                  </h3>
-
-                  <p className="text-sm text-[#8e8980] mt-1">
-                    Informe os tamanhos disponíveis e a quantidade recebida.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={
-                    adicionarVariacao
-                  }
-                  className="w-full sm:w-auto px-3 py-2 rounded-md bg-[#171511] text-[#e2dacc] text-sm hover:opacity-90"
-                >
-                  + Adicionar tamanho
-                </button>
+                <p className="text-sm text-[#8e8980] mt-1">
+                  Visualize os tamanhos existentes, confira o estoque e adicione novas variações.
+                </p>
               </div>
 
-              {form.variacoes.length ===
-              0 ? (
-                <div className="border border-dashed border-[#8e8980]/40 rounded-md px-4 py-6 text-center">
-                  <p className="text-sm text-[#8e8980]">
-                    Nenhum tamanho
-                    adicionado.
-                  </p>
+              <button
+                type="button"
+                onClick={
+                  adicionarVariacao
+                }
+                disabled={
+                  carregandoVariacoes
+                }
+                className="w-full sm:w-auto px-3 py-2 rounded-md bg-[#171511] text-[#e2dacc] text-sm hover:opacity-90 disabled:opacity-50"
+              >
+                + Adicionar tamanho
+              </button>
+            </div>
 
-                  <p className="text-xs text-[#8e8980] mt-1">
-                    Clique em “Adicionar tamanho”
-                    para cadastrar as numerações.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {form.variacoes.map(
-                    (
-                      variacao,
-                      index
-                    ) => (
+            {carregandoVariacoes ? (
+              <div className="border border-[#8e8980]/20 rounded-md px-4 py-6 text-center">
+                <p className="text-sm text-[#8e8980]">
+                  Carregando variações...
+                </p>
+              </div>
+            ) : form.variacoes.length === 0 ? (
+              <div className="border border-dashed border-[#8e8980]/40 rounded-md px-4 py-6 text-center">
+                <p className="text-sm text-[#8e8980]">
+                  Nenhum tamanho cadastrado.
+                </p>
+
+                <p className="text-xs text-[#8e8980] mt-1">
+                  Clique em “Adicionar tamanho” para cadastrar uma nova numeração.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {form.variacoes.map(
+                  (
+                    variacao,
+                    index
+                  ) => {
+                    const existente =
+                      Boolean(
+                        variacao.id
+                      );
+
+                    return (
                       <div
-                        key={index}
-                        className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_100px_auto] gap-3 items-end"
+                        key={
+                          variacao.id ||
+                          `nova-${index}`
+                        }
+                        className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_100px_auto] gap-3 items-end p-3 rounded-md border border-[#8e8980]/20 bg-[#faf9f7]"
                       >
                         <Input
                           label="Tamanho"
@@ -429,9 +617,11 @@ function ModalProduto({
                           name={`estoque-${index}`}
                           type="number"
                           min="0"
-                          placeholder="0"
                           value={
                             variacao.estoque
+                          }
+                          disabled={
+                            existente
                           }
                           onChange={(
                             e
@@ -456,20 +646,30 @@ function ModalProduto({
                         >
                           Remover
                         </button>
+
+                        {existente && (
+                          <p className="sm:col-span-4 text-xs text-[#8e8980]">
+                            Estoque atual:{" "}
+                            {variacao.estoque}
+                            . Para adicionar estoque, use o gerenciamento de variações.
+                          </p>
+                        )}
                       </div>
-                    )
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })()}
+                    );
+                  }
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
           <label className="flex items-center gap-2 text-sm text-[#171511]">
             <input
               type="checkbox"
-              checked={form.destaque}
+              checked={
+                form.destaque
+              }
               onChange={(e) =>
                 atualizarCampo(
                   'destaque',
@@ -477,13 +677,16 @@ function ModalProduto({
                 )
               }
             />
+
             Destaque
           </label>
 
           <label className="flex items-center gap-2 text-sm text-[#171511]">
             <input
               type="checkbox"
-              checked={form.promocao}
+              checked={
+                form.promocao
+              }
               onChange={(e) =>
                 atualizarCampo(
                   'promocao',
@@ -491,13 +694,17 @@ function ModalProduto({
                 )
               }
             />
+
             Promoção
           </label>
         </div>
 
         <Button
           type="submit"
-          disabled={salvando}
+          disabled={
+            salvando ||
+            carregandoVariacoes
+          }
         >
           {salvando
             ? 'Salvando...'

@@ -31,8 +31,11 @@ function Produtos() {
   const [modalAberto, setModalAberto] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState(null);
 
-  const [modalMidiaAberto, setModalMidiaAberto] = useState(false);
-  const [produtoMidia, setProdutoMidia] = useState(null);
+  const [modalMidiaAberto, setModalMidiaAberto] =
+    useState(false);
+
+  const [produtoMidia, setProdutoMidia] =
+    useState(null);
 
   async function carregarDados() {
     setCarregando(true);
@@ -94,53 +97,142 @@ function Produtos() {
   }
 
   async function handleSalvar(dados) {
-    if (produtoEditando) {
-      await atualizarProduto(
-        produtoEditando.id,
-        {
-          nome: dados.nome,
-          descricao: dados.descricao,
-          preco: dados.preco,
-          categoriaId: dados.categoriaId,
-          tipoProdutoId: dados.tipoProdutoId,
-          destaque: dados.destaque,
-          promocao: dados.promocao,
+    try {
+      setErro('');
+
+      /*
+       * EDIÇÃO
+       */
+      if (produtoEditando) {
+        await atualizarProduto(
+          produtoEditando.id,
+          {
+            nome: dados.nome,
+            descricao: dados.descricao,
+            preco: dados.preco,
+            categoriaId:
+              dados.categoriaId,
+            tipoProdutoId:
+              dados.tipoProdutoId,
+            destaque:
+              dados.destaque,
+            promocao:
+              dados.promocao,
+          }
+        );
+
+        /*
+         * As variações que já possuem ID
+         * já existem no banco.
+         *
+         * Somente as novas variações,
+         * sem ID, devem ser criadas.
+         */
+        if (
+          Array.isArray(
+            dados.variacoes
+          )
+        ) {
+          const novasVariacoes =
+            dados.variacoes.filter(
+              (variacao) =>
+                !variacao.id
+            );
+
+          for (
+            const variacao of
+            novasVariacoes
+          ) {
+            await criarVariacao(
+              produtoEditando.id,
+              {
+                tamanho:
+                  variacao.tamanho,
+
+                cor:
+                  variacao.cor ||
+                  null,
+
+                estoque:
+                  Number(
+                    variacao.estoque
+                  ),
+              }
+            );
+          }
         }
-      );
+
+        setModalAberto(false);
+
+        await carregarDados();
+
+        return;
+      }
+
+      /*
+       * CADASTRO DE NOVO PRODUTO
+       */
+      const produtoCriado =
+        await criarProduto({
+          nome: dados.nome,
+          descricao:
+            dados.descricao,
+          preco: dados.preco,
+          categoriaId:
+            dados.categoriaId,
+          tipoProdutoId:
+            dados.tipoProdutoId,
+          destaque:
+            dados.destaque,
+          promocao:
+            dados.promocao,
+        });
+
+      /*
+       * Cria todas as variações
+       * do novo produto.
+       */
+      if (
+        Array.isArray(
+          dados.variacoes
+        )
+      ) {
+        for (
+          const variacao of
+          dados.variacoes
+        ) {
+          await criarVariacao(
+            produtoCriado.id,
+            {
+              tamanho:
+                variacao.tamanho,
+
+              cor:
+                variacao.cor ||
+                null,
+
+              estoque:
+                Number(
+                  variacao.estoque
+                ),
+            }
+          );
+        }
+      }
 
       setModalAberto(false);
 
       await carregarDados();
-
-      return;
+    } catch (error) {
+      setErro(
+        error.message
+      );
     }
-
-    const produtoCriado =
-      await criarProduto({
-        nome: dados.nome,
-        descricao: dados.descricao,
-        preco: dados.preco,
-        categoriaId: dados.categoriaId,
-        tipoProdutoId: dados.tipoProdutoId,
-        destaque: dados.destaque,
-        promocao: dados.promocao,
-      });
-
-    if (Array.isArray(dados.variacoes)) {
-      for (const variacao of dados.variacoes) {
-        await criarVariacao(
-          produtoCriado.id,
-          variacao
-        );
-      }
-    }
-
-    setModalAberto(false);
-
-    await carregarDados();
   }
 
-  async function handleDesativar(produto) {
+  async function handleDesativar(
+    produto
+  ) {
     if (
       !confirm(
         `Desativar "${produto.nome}"? Ele deixará de aparecer na loja.`
@@ -150,23 +242,37 @@ function Produtos() {
     }
 
     try {
-      await excluirProduto(produto.id);
+      await excluirProduto(
+        produto.id
+      );
+
       await carregarDados();
     } catch (error) {
-      alert(error.message);
+      alert(
+        error.message
+      );
     }
   }
 
-  async function handleReativar(produto) {
+  async function handleReativar(
+    produto
+  ) {
     try {
-      await reativarProduto(produto.id);
+      await reativarProduto(
+        produto.id
+      );
+
       await carregarDados();
     } catch (error) {
-      alert(error.message);
+      alert(
+        error.message
+      );
     }
   }
 
-  async function handleExcluirDefinitivo(produto) {
+  async function handleExcluirDefinitivo(
+    produto
+  ) {
     if (
       !confirm(
         `Excluir "${produto.nome}" definitivamente? Essa ação não pode ser desfeita.`
@@ -182,7 +288,9 @@ function Produtos() {
 
       await carregarDados();
     } catch (error) {
-      alert(error.message);
+      alert(
+        error.message
+      );
     }
   }
 
@@ -257,7 +365,9 @@ function Produtos() {
         produtoEditando={
           produtoEditando
         }
-        categorias={categorias}
+        categorias={
+          categorias
+        }
         tiposProduto={
           tiposProduto
         }
@@ -265,11 +375,15 @@ function Produtos() {
 
       {/* Modal de variações e imagens */}
       <ModalVariacoesImagens
-        aberto={modalMidiaAberto}
+        aberto={
+          modalMidiaAberto
+        }
         onFechar={() =>
           setModalMidiaAberto(false)
         }
-        produto={produtoMidia}
+        produto={
+          produtoMidia
+        }
       />
     </div>
   );

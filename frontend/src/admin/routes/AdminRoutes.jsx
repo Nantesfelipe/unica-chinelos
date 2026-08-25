@@ -9,6 +9,7 @@ import Categorias from '../pages/Categorias';
 import TiposProdutos from '../pages/TiposProdutos';
 import Pedidos from '../pages/Pedidos';
 import Clientes from '../pages/Clientes';
+import Cupons from '../pages/Coupons';
 
 function AdminRoutes() {
   return (
@@ -46,7 +47,14 @@ function AdminRoutes() {
         path="clientes"
         element={<Clientes />}
       />
+
+        <Route
+        path="cupons"
+        element={<Cupons />}
+      />
+
     </Route>
+    
   );
 }
 

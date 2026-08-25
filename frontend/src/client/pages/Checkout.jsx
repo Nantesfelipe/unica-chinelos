@@ -6,6 +6,7 @@ import {
 
 import {
   MapPin,
+  Truck,
 } from 'lucide-react';
 
 import useCart from '../../hooks/useCart';
@@ -15,10 +16,18 @@ import {
   finalizarPedido,
 } from '../../services/order.service';
 
+import {
+  calcularFrete,
+} from '../../services/shipping.service';
+import {
+  validarCupom
+} from '../../services/coupon.service';
+
 import Button from '../../components/Button';
 import Loading from '../../components/Loading';
 
 import formatCurrency from '../../utils/formatCurrency';
+
 
 function Checkout() {
   const navigate =
@@ -32,6 +41,7 @@ function Checkout() {
   const {
     carrinho,
     totalCarrinho,
+    quantidadeItens,
   } = useCart();
 
   const [
@@ -44,6 +54,15 @@ function Checkout() {
     setErro,
   ] = useState('');
 
+  const [frete, setFrete] = useState(null);
+  const [opcaoFreteSelecionada, setOpcaoFreteSelecionada] = useState(null);
+  const [carregandoFrete, setCarregandoFrete] = useState(false);
+  const [erroFrete, setErroFrete] = useState('');
+
+  const [codigoCupom, setCodigoCupom] = useState('');
+  const [cupomAplicado, setCupomAplicado] = useState(null);
+  const [aplicandoCupom, setAplicandoCupom] = useState(false);
+  const [erroCupom, setErroCupom] = useState('');
   function perfilTemEndereco() {
     if (!usuario) {
       return false;
@@ -70,6 +89,30 @@ function Checkout() {
         );
       }
     );
+  }
+
+  async function handleCalcularFrete() {
+    if (!usuario?.cep) {
+      return;
+    }
+
+    setErroFrete('');
+    setCarregandoFrete(true);
+
+    try {
+      const resultado = await calcularFrete(
+        usuario.cep,
+        quantidadeItens,
+        totalCarrinho
+      );
+
+      setFrete(resultado);
+      setOpcaoFreteSelecionada(resultado.opcoes?.[0] || null);
+    } catch (error) {
+      setErroFrete(error.message || 'Não foi possível calcular o frete.');
+    } finally {
+      setCarregandoFrete(false);
+    }
   }
 
   async function handleFinalizar() {
@@ -147,11 +190,38 @@ function Checkout() {
     } catch (error) {
       setErro(
         error.message ||
-          'Não foi possível iniciar o pagamento.'
+        'Não foi possível iniciar o pagamento.'
       );
 
       setCarregando(false);
     }
+  }
+
+  async function handleAplicarCupom() {
+    setErroCupom('');
+
+    if (!codigoCupom.trim()) {
+      setErroCupom('Digite um código de cupom.');
+      return;
+    }
+
+    setAplicandoCupom(true);
+
+    try {
+      const resultado = await validarCupom(codigoCupom.trim(), totalCarrinho);
+      setCupomAplicado(resultado);
+    } catch (error) {
+      setCupomAplicado(null);
+      setErroCupom(error.message || 'Cupom inválido.');
+    } finally {
+      setAplicandoCupom(false);
+    }
+  }
+
+  function handleRemoverCupom() {
+    setCupomAplicado(null);
+    setCodigoCupom('');
+    setErroCupom('');
   }
 
   if (
@@ -181,6 +251,11 @@ function Checkout() {
       </section>
     );
   }
+
+  const totalComFrete =
+    totalCarrinho -
+    (cupomAplicado?.valorDesconto || 0) +
+    (opcaoFreteSelecionada?.valorFrete || 0);
 
   return (
     <section className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
@@ -281,6 +356,76 @@ function Checkout() {
           </div>
         )}
 
+      {autenticado && perfilTemEndereco() && (
+        <div className="bg-white rounded-lg p-5 sm:p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Truck size={19} className="text-[#746c5c]" />
+            <h2 className="font-semibold text-[#171511]">Frete</h2>
+          </div>
+
+          {!frete && !carregandoFrete && (
+            <Button
+              onClick={handleCalcularFrete}
+              variant="outline"
+              fullWidth={false}
+            >
+              Calcular frete para {usuario.cep}
+            </Button>
+          )}
+
+          {carregandoFrete && (
+            <p className="text-sm text-[#8e8980]">Calculando frete...</p>
+          )}
+
+          {erroFrete && (
+            <p className="text-sm text-red-700 mt-2">{erroFrete}</p>
+          )}
+
+          {frete && (
+            <div className="space-y-2">
+              {frete.opcoes.map((opcao) => (
+                <label
+                  key={opcao.modalidade}
+                  className={`
+                    flex items-center justify-between
+                    border rounded-md px-4 py-3 cursor-pointer text-sm
+                    ${opcaoFreteSelecionada?.modalidade === opcao.modalidade
+                      ? 'border-[#746c5c] bg-[#e2dacc]'
+                      : 'border-[#8e8980]/40'
+                    }
+                  `}
+                >
+                  <span className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="frete"
+                      checked={
+                        opcaoFreteSelecionada?.modalidade === opcao.modalidade
+                      }
+                      onChange={() => setOpcaoFreteSelecionada(opcao)}
+                    />
+                    <span>
+                      <span className="font-medium text-[#171511]">
+                        {opcao.nome}
+                      </span>
+                      <span className="block text-xs text-[#8e8980]">
+                        Chega em até {opcao.prazoDias} dia(s) útil(is)
+                      </span>
+                    </span>
+                  </span>
+
+                  <span className="font-medium text-[#171511]">
+                    {opcao.valorFrete === 0
+                      ? 'Grátis'
+                      : formatCurrency(opcao.valorFrete)}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="bg-white rounded-lg p-5 sm:p-6">
         <h2 className="font-semibold text-[#171511]">
           Resumo do pedido
@@ -298,22 +443,22 @@ function Checkout() {
 
                   {(item.cor ||
                     item.tamanho) && (
-                    <span className="text-[#8e8980]">
-                      {' '}
-                      (
-                      {[
-                        item.cor,
-                        item.tamanho,
-                      ]
-                        .filter(
-                          Boolean
+                      <span className="text-[#8e8980]">
+                        {' '}
+                        (
+                        {[
+                          item.cor,
+                          item.tamanho,
+                        ]
+                          .filter(
+                            Boolean
+                          )
+                          .join(
+                            ' · '
+                          )}
                         )
-                        .join(
-                          ' · '
-                        )}
-                      )
-                    </span>
-                  )}
+                      </span>
+                    )}
 
                   {' '}×{' '}
                   {item.quantidade}
@@ -324,7 +469,7 @@ function Checkout() {
                     Number(
                       item.preco
                     ) *
-                      item.quantidade
+                    item.quantidade
                   )}
                 </span>
               </div>
@@ -332,16 +477,85 @@ function Checkout() {
           )}
         </div>
 
-        <div className="border-t border-[#8e8980]/20 mt-6 pt-5 flex justify-between">
-          <span className="font-semibold text-[#171511]">
-            Total
-          </span>
+        <div className="border-t border-[#8e8980]/20 mt-6 pt-5">
+          <p className="text-sm font-medium text-[#171511] mb-3">
+            Cupom de desconto
+          </p>
 
-          <span className="font-semibold text-[#171511]">
-            {formatCurrency(
-              totalCarrinho
-            )}
-          </span>
+
+
+          {cupomAplicado && (
+            <div className="flex justify-between text-sm text-green-700">
+              <span>Desconto ({cupomAplicado.cupom.codigo})</span>
+              <span>-{formatCurrency(cupomAplicado.valorDesconto)}</span>
+            </div>
+          )}
+          {!cupomAplicado ? (
+            <div className="flex gap-2">
+              <input
+                value={codigoCupom}
+                onChange={(e) => setCodigoCupom(e.target.value.toUpperCase())}
+                placeholder="Digite o código"
+                className="flex-1 px-4 py-2.5 rounded-md border border-[#8e8980]/40 text-sm text-[#171511] placeholder-[#8e8980] outline-none focus:border-[#746c5c]"
+              />
+
+              <Button
+                type="button"
+                onClick={handleAplicarCupom}
+                disabled={aplicandoCupom}
+                fullWidth={false}
+              >
+                {aplicandoCupom ? 'Validando...' : 'Aplicar'}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-md px-4 py-3">
+              <span className="text-sm text-green-800">
+                Cupom "{cupomAplicado.cupom.codigo}" aplicado (-
+                {formatCurrency(cupomAplicado.valorDesconto)})
+              </span>
+
+              <button
+                type="button"
+                onClick={handleRemoverCupom}
+                className="text-xs text-green-800 underline"
+              >
+                Remover
+              </button>
+            </div>
+          )}
+
+          {erroCupom && (
+            <p className="text-sm text-red-700 mt-2">{erroCupom}</p>
+          )}
+        </div>
+
+        <div className="border-t border-[#8e8980]/20 mt-6 pt-5 space-y-2">
+          <div className="flex justify-between text-sm text-[#746c5c]">
+            <span>Subtotal</span>
+            <span>{formatCurrency(totalCarrinho)}</span>
+          </div>
+
+          {opcaoFreteSelecionada && (
+            <div className="flex justify-between text-sm text-[#746c5c]">
+              <span>Frete ({opcaoFreteSelecionada.nome})</span>
+              <span>
+                {opcaoFreteSelecionada.valorFrete === 0
+                  ? 'Grátis'
+                  : formatCurrency(opcaoFreteSelecionada.valorFrete)}
+              </span>
+            </div>
+          )}
+
+          <div className="flex justify-between pt-2">
+            <span className="font-semibold text-[#171511]">
+              Total
+            </span>
+
+            <span className="font-semibold text-[#171511]">
+              {formatCurrency(totalComFrete)}
+            </span>
+          </div>
         </div>
 
         {erro && (

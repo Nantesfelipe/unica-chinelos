@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Check } from 'lucide-react';
 
+
 import {
   buscarProdutoPorId,
   listarVariacoes,
@@ -24,6 +25,7 @@ import Button from '../../components/Button';
 import Loading from '../../components/Loading';
 
 import formatCurrency from '../../utils/formatCurrency';
+import AvaliacoesProduto from '../../components/AvaliacoesProduto';
 
 function Produto() {
   const { id } = useParams();
@@ -263,6 +265,7 @@ function adicionarProduto() {
           </div>
         </div>
       </div>
+            <AvaliacoesProduto produtoId={id} />
     </section>
   );
 }

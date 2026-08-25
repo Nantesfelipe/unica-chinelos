@@ -7,9 +7,9 @@ import {
   Layers,
   ShoppingBag,
   Users,
+  Ticket,
   X,
 } from 'lucide-react';
-
 const itens = [
   {
     to: '/admin',
@@ -41,6 +41,11 @@ const itens = [
     to: '/admin/clientes',
     label: 'Clientes',
     icon: Users,
+  },
+   {
+    to: '/admin/cupons',
+    label: 'Cupons',
+    icon: Ticket,
   },
 ];
 

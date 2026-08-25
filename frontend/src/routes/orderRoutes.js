@@ -8,7 +8,6 @@ const {
   todosPedidos,
   detalhesPedido,
   cancelarPedido,
-  webhook,
 } = require('../controllers/orderController');
 
 const { autenticar, apenasAdmin } = require('../middlewares/authMiddleware');
@@ -136,7 +135,5 @@ router.patch(
  *         description: Erro interno do servidor.
  */
 router.put('/:id/status', autenticar, apenasAdmin, atualizarStatus);
-
-router.post('/webhook', webhook)
 
 module.exports = router;

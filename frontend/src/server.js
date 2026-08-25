@@ -1,0 +1,67 @@
+const express = require('express');
+const pool = require('./config/database');
+const authRoutes = require('./routes/authRoutes');
+const { autenticar, apenasAdmin } = require('./middlewares/authMiddleware');
+const productRoutes = require('./routes/productRoutes');
+const favoriteRoutes = require('./routes/favoriteRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
+const productTypeRoutes = require('./routes/productTypeRoutes');
+const userRoutes = require('./routes/userRoutes');
+const cupomRoutes = require('./routes/cupomRoutes');
+const shippingRoutes = require('./routes/shippingRoutes');
+const cors = require('cors');
+
+
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./docs/swagger");
+
+const app = express();
+
+app.use(cors());
+
+app.use(express.json());
+app.use('/auth', authRoutes);
+app.use('/products', productRoutes);
+app.use('/favorites', favoriteRoutes);
+app.use('/orders', orderRoutes);
+app.use('/categories', categoryRoutes);
+app.use('/product-types', productTypeRoutes);
+app.use('/users', userRoutes);
+app.use('/coupons', cupomRoutes);
+app.use('/shipping', shippingRoutes);
+
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Rota de teste: confirma que o servidor está de pé
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// Rota de teste: confirma que o servidor consegue falar com o banco
+app.get('/health/db', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT NOW()');
+    res.json({ status: 'ok', db_time: result.rows[0].now });
+  } catch (err) {
+    res.status(500).json({ status: 'erro', error: err.message });
+  }
+});
+
+app.get('/perfil', autenticar, (req, res) => {
+  res.json({ mensagem: 'Você está autenticado!', usuario: req.usuario });
+});
+
+app.get('/admin/teste', autenticar, apenasAdmin, (req, res) => {
+  res.json({ mensagem: 'Você é admin!', usuario: req.usuario });
+});
+
+
+
+
+
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});

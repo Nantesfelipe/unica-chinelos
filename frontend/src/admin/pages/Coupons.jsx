@@ -61,14 +61,20 @@ function Cupons() {
 
     try {
       await criarCupom({
-        codigo: form.codigo.trim(),
-        tipoDesconto: form.tipoDesconto,
-        valorDesconto: Number(form.valorDesconto),
-        valorMinimoPedido: form.valorMinimoPedido
-          ? Number(form.valorMinimoPedido)
-          : 0,
-        limiteUso: form.limiteUso ? Number(form.limiteUso) : null,
-        dataValidade: form.dataValidade || null,
+        codigo:
+          form.codigo.trim(),
+
+        tipoDesconto:
+          form.tipoDesconto,
+
+        valorDesconto:
+          Number(
+            form.valorDesconto
+          ),
+
+        dataValidade:
+          form.dataValidade ||
+          null,
       });
 
       setForm({
@@ -158,23 +164,7 @@ function Cupons() {
           onChange={(e) => handleChange('valorDesconto', e.target.value)}
         />
 
-        <Input
-          label="Valor mínimo do pedido (R$)"
-          name="valorMinimoPedido"
-          type="number"
-          value={form.valorMinimoPedido}
-          onChange={(e) => handleChange('valorMinimoPedido', e.target.value)}
-          placeholder="0"
-        />
 
-        <Input
-          label="Limite de usos (opcional)"
-          name="limiteUso"
-          type="number"
-          value={form.limiteUso}
-          onChange={(e) => handleChange('limiteUso', e.target.value)}
-          placeholder="Ilimitado"
-        />
 
         <Input
           label="Validade (opcional)"
@@ -225,8 +215,8 @@ function Cupons() {
 
                   <td className="px-4 py-3 text-[#746c5c]">
                     {cupom.tipo_desconto === 'percentual'
-                      ? `${cupom.valor_desconto}%`
-                      : formatCurrency(cupom.valor_desconto)}
+                      ? `${cupom.valor}%`
+                      : formatCurrency(cupom.valor)}
                   </td>
 
                   <td className="px-4 py-3 text-[#746c5c]">
@@ -240,11 +230,10 @@ function Cupons() {
 
                   <td className="px-4 py-3">
                     <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        cupom.ativo
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-[#8e8980]/15 text-[#8e8980]'
-                      }`}
+                      className={`text-xs px-2 py-1 rounded-full ${cupom.ativo
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-[#8e8980]/15 text-[#8e8980]'
+                        }`}
                     >
                       {cupom.ativo ? 'Ativo' : 'Inativo'}
                     </span>

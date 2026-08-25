@@ -155,20 +155,11 @@ function Checkout() {
           })
         );
 
-      const resposta =
-        await finalizarPedido({
-          itens,
-
-          /*
-           * Mantido temporariamente para
-           * compatibilidade com a estrutura
-           * atual do banco.
-           *
-           * O método real de pagamento será
-           * definido pelo Mercado Pago.
-           */
-          formaPagamento: 'pix',
-        });
+      const resposta = await finalizarPedido({
+        itens,
+        cupomId: cupomAplicado?.cupom.id || null,
+        modalidadeFrete: opcaoFreteSelecionada?.modalidade || null,
+      });
 
       if (
         !resposta ||

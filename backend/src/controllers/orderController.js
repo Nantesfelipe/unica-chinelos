@@ -1,3 +1,4 @@
+
 const crypto = require('crypto');
 
 const {
@@ -10,7 +11,6 @@ const {
   listarTodosPedidos,
   buscarPedidoComItens,
   cancelarPedido,
- 
 } = require('../models/orderModel');
 
 const {
@@ -30,7 +30,7 @@ async function finalizar(req, res) {
   let pedidoCriado = null;
 
   try {
-    const { itens,  cupomId, modalidadeFrete } = req.body;
+    const { itens, cupomId, modalidadeFrete } = req.body;
 
     if (!Array.isArray(itens) || itens.length === 0) {
       return res.status(400).json({
@@ -51,11 +51,6 @@ async function finalizar(req, res) {
       }
     }
 
-    /*
-     * 1. Cria o pedido, recalculando cupom e frete no
-     * servidor (nunca confiando em valores vindos do front),
-     * e reserva o estoque.
-     */
     pedidoCriado = await criarPedidoComItens({
       usuarioId: req.usuario.id,
       itens,
@@ -63,20 +58,19 @@ async function finalizar(req, res) {
       modalidadeFrete,
     });
 
-    /*
-     * 2. Busca os detalhes completos para montar a preferência.
-     */
-    const pedidoDetalhado = await buscarPedidoComItens(pedidoCriado.id);
+    const pedidoDetalhado = await buscarPedidoComItens(
+      pedidoCriado.id
+    );
 
     if (!pedidoDetalhado) {
-      throw new Error('Não foi possível recuperar o pedido criado.');
+      throw new Error(
+        'Não foi possível recuperar o pedido criado.'
+      );
     }
 
-    /*
-     * 3. Monta os itens da preferência: produtos + frete (se houver)
-     * + desconto do cupom (se houver) como item negativo.
-     */
-    const itensPreferencia = (pedidoDetalhado.itens || []).map((item) => ({
+    const itensPreferencia = (
+      pedidoDetalhado.itens || []
+    ).map((item) => ({
       id: String(item.variacao_id),
       title: item.produto,
       quantity: Number(item.quantidade),
@@ -99,12 +93,17 @@ async function finalizar(req, res) {
         id: 'desconto',
         title: 'Desconto (cupom)',
         quantity: 1,
-        unit_price: -Number(pedidoDetalhado.valor_desconto),
+        unit_price: -Number(
+          pedidoDetalhado.valor_desconto
+        ),
         currency_id: 'BRL',
       });
     }
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl =
+      process.env.FRONTEND_URL ||
+      'http://localhost:5173';
+
     const backendUrl = process.env.BACKEND_URL;
 
     if (!backendUrl) {
@@ -113,9 +112,6 @@ async function finalizar(req, res) {
       );
     }
 
-    /*
-     * 4. Cria a preferência no Mercado Pago.
-     */
     const preference = await preferenceClient.create({
       body: {
         external_reference: String(pedidoCriado.id),
@@ -133,19 +129,15 @@ async function finalizar(req, res) {
           failure: `${frontendUrl}/pedido/erro`,
         },
 
-        // auto_return: 'approved',
-
         notification_url: `${backendUrl}/orders/webhook`,
       },
     });
 
-    /*
-     * 5. Salva o ID da preferência no pedido.
-     */
-    const pedidoAtualizado = await atualizarMercadoPagoId(
-      pedidoCriado.id,
-      preference.id
-    );
+    const pedidoAtualizado =
+      await atualizarMercadoPagoId(
+        pedidoCriado.id,
+        preference.id
+      );
 
     if (!pedidoAtualizado) {
       throw new Error(
@@ -153,27 +145,32 @@ async function finalizar(req, res) {
       );
     }
 
-    /*
-     * 6. Retorna os dados necessários para o frontend.
-     */
     res.status(201).json({
       pedido: pedidoAtualizado,
       preferenceId: preference.id,
       initPoint: preference.init_point,
     });
   } catch (err) {
-    console.error('Erro ao criar pedido/pagamento:', err);
+    console.error(
+      'Erro ao criar pedido/pagamento:',
+      err
+    );
 
-    /*
-     * Se o pedido já foi criado e algo falhou depois,
-     * devolvemos o estoque reservado.
-     */
     if (pedidoCriado?.id) {
       try {
-        await devolverEstoquePedido(pedidoCriado.id);
-        await atualizarStatusPedido(pedidoCriado.id, 'cancelado');
+        await devolverEstoquePedido(
+          pedidoCriado.id
+        );
+
+        await atualizarStatusPedido(
+          pedidoCriado.id,
+          'cancelado'
+        );
       } catch (erroEstoque) {
-        console.error('Erro ao desfazer reserva do estoque:', erroEstoque);
+        console.error(
+          'Erro ao desfazer reserva do estoque:',
+          erroEstoque
+        );
       }
     }
 
@@ -186,7 +183,8 @@ async function finalizar(req, res) {
       VARIATION_NOT_FOUND: 400,
     };
 
-    const status = errosConhecidos[err.code] || 500;
+    const status =
+      errosConhecidos[err.code] || 500;
 
     res.status(status).json({
       erro:
@@ -198,22 +196,33 @@ async function finalizar(req, res) {
 }
 
 /*
- * Valida a assinatura enviada pelo Mercado Pago no header
- * x-signature, pra garantir que a notificação é legítima.
+ * Valida a assinatura enviada pelo Mercado Pago.
  */
 function validarAssinaturaWebhook(req, dataId) {
-  const signatureHeader = req.headers['x-signature'];
-  const requestId = req.headers['x-request-id'];
+  const signatureHeader =
+    req.headers['x-signature'];
 
-  if (!signatureHeader || !requestId || !dataId) {
+  const requestId =
+    req.headers['x-request-id'];
+
+  if (
+    !signatureHeader ||
+    !requestId ||
+    !dataId
+  ) {
     return false;
   }
 
-  const partes = signatureHeader.split(',').reduce((acc, parte) => {
-    const [chave, valor] = parte.split('=');
-    acc[chave.trim()] = valor?.trim();
-    return acc;
-  }, {});
+  const partes = signatureHeader
+    .split(',')
+    .reduce((acc, parte) => {
+      const [chave, valor] =
+        parte.split('=');
+
+      acc[chave.trim()] = valor?.trim();
+
+      return acc;
+    }, {});
 
   const { ts, v1 } = partes;
 
@@ -221,12 +230,25 @@ function validarAssinaturaWebhook(req, dataId) {
     return false;
   }
 
-  const template = `id:${dataId};request-id:${requestId};ts:${ts};`;
+  const secret =
+    process.env.MERCADO_PAGO_WEBHOOK_SECRET;
 
-  const assinaturaCalculada = crypto
-    .createHmac('sha256', process.env.MERCADO_PAGO_WEBHOOK_SECRET)
-    .update(template)
-    .digest('hex');
+  if (!secret) {
+    console.error(
+      'MERCADO_PAGO_WEBHOOK_SECRET não configurado.'
+    );
+
+    return false;
+  }
+
+  const template =
+    `id:${dataId};request-id:${requestId};ts:${ts};`;
+
+  const assinaturaCalculada =
+    crypto
+      .createHmac('sha256', secret)
+      .update(template)
+      .digest('hex');
 
   try {
     return crypto.timingSafeEqual(
@@ -239,8 +261,8 @@ function validarAssinaturaWebhook(req, dataId) {
 }
 
 /*
- * Mapeia o status do Mercado Pago para o status_pagamento
- * do pedido.
+ * Mapeia o status do Mercado Pago
+ * para o status do pedido.
  */
 const MAPA_STATUS_PAGAMENTO = {
   approved: 'aprovado',
@@ -252,66 +274,122 @@ const MAPA_STATUS_PAGAMENTO = {
   charged_back: 'estornado',
 };
 
+/*
+ * Webhook do Mercado Pago.
+ */
 async function webhook(req, res) {
   try {
-    const dataId = req.query['data.id'] || req.body?.data?.id;
-    const tipo = req.query.type || req.body?.type;
+
+     console.log('WEBHOOK RECEBIDO:', {
+      query: req.query,
+      body: req.body,
+
+    });
+    const dataId =
+      req.query['data.id'] ||
+      req.body?.data?.id;
+    console.log('DATA ID EXTRAÍDO:', dataId);
+    const tipo =
+      req.query.type ||
+      req.body?.type;
 
     if (tipo !== 'payment' || !dataId) {
-      /*
-       * Mercado Pago manda outros tipos de notificação
-       * (ex: merchant_order) que não precisamos tratar aqui.
-       */
       return res.status(200).send();
     }
 
-    if (!validarAssinaturaWebhook(req, dataId)) {
-      console.warn('Webhook do Mercado Pago com assinatura inválida.');
+    if (
+      !validarAssinaturaWebhook(
+        req,
+        dataId
+      )
+    ) {
+      console.warn(
+        'Webhook do Mercado Pago com assinatura inválida.'
+      );
+
       return res.status(401).send();
     }
 
-    const pagamento = await paymentClient.get({ id: dataId });
-    const pedidoId = Number(pagamento.external_reference);
+    const pagamento =
+      await paymentClient.get({
+        id: dataId,
+      });
+
+    console.log(
+      'Pagamento recebido pelo webhook:',
+      {
+        id: pagamento.id,
+        status: pagamento.status,
+        payment_type_id:
+          pagamento.payment_type_id,
+        external_reference:
+          pagamento.external_reference,
+      }
+    );
+
+    const pedidoId = Number(
+      pagamento.external_reference
+    );
 
     if (!pedidoId) {
       return res.status(200).send();
     }
 
-    const pedido = await buscarPedidoComItens(pedidoId);
+    const pedido =
+      await buscarPedidoComItens(pedidoId);
 
     if (!pedido) {
+      console.warn(
+        `Pedido ${pedidoId} não encontrado para o pagamento ${dataId}.`
+      );
+
       return res.status(200).send();
     }
 
     const statusPagamento =
-      MAPA_STATUS_PAGAMENTO[pagamento.status] || 'pendente';
+      MAPA_STATUS_PAGAMENTO[
+        pagamento.status
+      ] || 'pendente';
 
-    /*
-     * Idempotência: se já processamos esse status, não faz
-     * nada de novo (evita devolver estoque duas vezes se o
-     * webhook chegar repetido).
-     */
-    if (pedido.status_pagamento === statusPagamento) {
+    if (
+      pedido.status_pagamento ===
+      statusPagamento
+    ) {
       return res.status(200).send();
     }
 
-    await atualizarStatusPagamento(pedidoId, statusPagamento);
+    await atualizarStatusEFormaPagamento(
+      pedidoId,
+      statusPagamento,
+      pagamento.payment_type_id
+    );
 
-    if (statusPagamento === 'rejeitado' || statusPagamento === 'cancelado') {
-      await devolverEstoquePedido(pedidoId);
-      await atualizarStatusPedido(pedidoId, 'cancelado');
+    if (
+      statusPagamento === 'rejeitado' ||
+      statusPagamento === 'cancelado'
+    ) {
+      await devolverEstoquePedido(
+        pedidoId
+      );
+
+      await atualizarStatusPedido(
+        pedidoId,
+        'cancelado'
+      );
     }
 
-    res.status(200).send();
-  } catch (err) {
-    console.error('Erro ao processar webhook do Mercado Pago:', err);
+    console.log(
+      `Pedido ${pedidoId} atualizado para pagamento: ${statusPagamento}`
+    );
 
-    /*
-     * Retornamos 200 mesmo em erro interno pra evitar que o
-     * Mercado Pago fique reenviando indefinidamente; o erro
-     * já foi logado pra investigação manual.
-     */
-    res.status(200).send();
+    return res.status(200).send();
+  } catch (err) {
+    console.error(
+      'Erro ao processar webhook do Mercado Pago:',
+      err
+    );
+
+    return res.status(200).send();
   }
 }
 
@@ -333,7 +411,11 @@ async function atualizarStatus(req, res) {
       });
     }
 
-    const pedido = await atualizarStatusPedido(req.params.id, status);
+    const pedido =
+      await atualizarStatusPedido(
+        req.params.id,
+        status
+      );
 
     if (!pedido) {
       return res.status(404).json({
@@ -351,7 +433,10 @@ async function atualizarStatus(req, res) {
 
 async function meusPedidos(req, res) {
   try {
-    const pedidos = await listarPedidosPorUsuario(req.usuario.id);
+    const pedidos =
+      await listarPedidosPorUsuario(
+        req.usuario.id
+      );
 
     res.json(pedidos);
   } catch (err) {
@@ -363,7 +448,10 @@ async function meusPedidos(req, res) {
 
 async function detalhesPedido(req, res) {
   try {
-    const pedido = await buscarPedidoComItens(req.params.id);
+    const pedido =
+      await buscarPedidoComItens(
+        req.params.id
+      );
 
     if (!pedido) {
       return res.status(404).json({
@@ -371,7 +459,11 @@ async function detalhesPedido(req, res) {
       });
     }
 
-    if (pedido.usuario_id !== req.usuario.id && req.usuario.tipo !== 'admin') {
+    if (
+      pedido.usuario_id !==
+        req.usuario.id &&
+      req.usuario.tipo !== 'admin'
+    ) {
       return res.status(403).json({
         erro: 'Acesso negado a este pedido.',
       });
@@ -387,7 +479,8 @@ async function detalhesPedido(req, res) {
 
 async function todosPedidos(req, res) {
   try {
-    const pedidos = await listarTodosPedidos();
+    const pedidos =
+      await listarTodosPedidos();
 
     res.json(pedidos);
   } catch (err) {
@@ -397,28 +490,39 @@ async function todosPedidos(req, res) {
   }
 }
 
-async function cancelarPedidoController(req, res) {
+async function cancelarPedidoController(
+  req,
+  res
+) {
   try {
-    const pedido = await cancelarPedido(
-      Number(req.params.id),
-      req.usuario.id
-    );
+    const pedido =
+      await cancelarPedido(
+        Number(req.params.id),
+        req.usuario.id
+      );
 
     res.json(pedido);
   } catch (err) {
-    if (err.code === 'ORDER_NOT_FOUND') {
+    if (
+      err.code === 'ORDER_NOT_FOUND'
+    ) {
       return res.status(404).json({
         erro: err.message,
       });
     }
 
-    if (err.code === 'ORDER_FORBIDDEN') {
+    if (
+      err.code === 'ORDER_FORBIDDEN'
+    ) {
       return res.status(403).json({
         erro: err.message,
       });
     }
 
-    if (err.code === 'ORDER_CANNOT_CANCEL') {
+    if (
+      err.code ===
+      'ORDER_CANNOT_CANCEL'
+    ) {
       return res.status(400).json({
         erro: err.message,
       });
@@ -436,6 +540,7 @@ module.exports = {
   meusPedidos,
   todosPedidos,
   detalhesPedido,
-  cancelarPedido: cancelarPedidoController,
+  cancelarPedido:
+    cancelarPedidoController,
   webhook,
 };

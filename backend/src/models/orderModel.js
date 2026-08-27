@@ -1,3 +1,4 @@
+
 const pool = require('../config/database');
 const { calcularDesconto } = require('../utils/cupomUtils');
 const { calcularFrete } = require('../services/freteService');
@@ -29,10 +30,6 @@ async function criarPedidoComItens({
   try {
     await client.query('BEGIN');
 
-    /*
-     * Busca o endereço atual do usuário.
-     * Ele será copiado para o pedido.
-     */
     const usuarioResult = await client.query(
       `SELECT
          cep,
@@ -65,45 +62,51 @@ async function criarPedidoComItens({
       'estado',
     ];
 
-    const enderecoCompleto = camposEndereco.every((campo) => {
-      const valor = usuario[campo];
+    const enderecoCompleto = camposEndereco.every(
+      (campo) => {
+        const valor = usuario[campo];
 
-      return (
-        valor !== null && valor !== undefined && String(valor).trim() !== ''
-      );
-    });
+        return (
+          valor !== null &&
+          valor !== undefined &&
+          String(valor).trim() !== ''
+        );
+      }
+    );
 
     if (!enderecoCompleto) {
       const erro = new Error(
         'Complete seu endereço no perfil antes de finalizar o pedido.'
       );
+
       erro.code = 'INCOMPLETE_ADDRESS';
+
       throw erro;
     }
 
-    /*
-     * Junta itens iguais para evitar
-     * duplicidade de reserva.
-     */
     const itensAgrupados = new Map();
 
     for (const item of itens) {
       const variacaoId = Number(item.variacaoId);
       const quantidade = Number(item.quantidade);
-      const quantidadeAtual = itensAgrupados.get(variacaoId) || 0;
 
-      itensAgrupados.set(variacaoId, quantidadeAtual + quantidade);
+      const quantidadeAtual =
+        itensAgrupados.get(variacaoId) || 0;
+
+      itensAgrupados.set(
+        variacaoId,
+        quantidadeAtual + quantidade
+      );
     }
 
     const itensComPreco = [];
 
     let valorTotal = 0;
 
-    /*
-     * Valida estoque e bloqueia
-     * as variações durante a transação.
-     */
-    for (const [variacaoId, quantidade] of itensAgrupados) {
+    for (const [
+      variacaoId,
+      quantidade,
+    ] of itensAgrupados) {
       const variacaoResult = await client.query(
         `SELECT
            v.id,
@@ -120,16 +123,24 @@ async function criarPedidoComItens({
       const variacao = variacaoResult.rows[0];
 
       if (!variacao) {
-        const erro = new Error(`Variação ${variacaoId} não encontrada.`);
+        const erro = new Error(
+          `Variação ${variacaoId} não encontrada.`
+        );
+
         erro.code = 'VARIATION_NOT_FOUND';
+
         throw erro;
       }
 
-      if (Number(variacao.estoque) < quantidade) {
+      if (
+        Number(variacao.estoque) < quantidade
+      ) {
         const erro = new Error(
           `Estoque insuficiente para a variação ${variacaoId}.`
         );
+
         erro.code = 'INSUFFICIENT_STOCK';
+
         throw erro;
       }
 
@@ -144,117 +155,144 @@ async function criarPedidoComItens({
       valorTotal += preco * quantidade;
     }
 
-    /*
-     * Recalcula o desconto do cupom no servidor.
-     * Nunca confiamos em valor enviado pelo navegador.
-     */
     let valorDesconto = 0;
     let cupomIdValido = null;
 
     if (cupomId) {
       const cupomResult = await client.query(
-        `SELECT * FROM cupom WHERE id = $1 FOR SHARE`,
+        `SELECT *
+         FROM cupom
+         WHERE id = $1
+         FOR SHARE`,
         [cupomId]
       );
 
       const cupom = cupomResult.rows[0];
 
       if (!cupom || !cupom.ativo) {
-        const erro = new Error('Cupom inválido ou inativo.');
+        const erro = new Error(
+          'Cupom inválido ou inativo.'
+        );
+
         erro.code = 'INVALID_COUPON';
+
         throw erro;
       }
 
       if (
         cupom.validade &&
-        new Date(`${cupom.validade}T23:59:59`) < new Date()
+        new Date(`${cupom.validade}T23:59:59`) <
+          new Date()
       ) {
-        const erro = new Error('Este cupom expirou.');
+        const erro = new Error(
+          'Este cupom expirou.'
+        );
+
         erro.code = 'COUPON_EXPIRED';
+
         throw erro;
       }
 
-      valorDesconto = calcularDesconto(cupom, valorTotal);
-      cupomIdValido = cupom.id;
-    }
-
-    /*
-     * Recalcula o frete no servidor, usando o CEP
-     * já salvo no perfil do usuário (não o que vier do front).
-     */
-    let valorFrete = 0;
-
-    if (modalidadeFrete) {
-      const resultadoFrete = await calcularFrete(
-        usuario.cep,
-        itens.length,
+      valorDesconto = calcularDesconto(
+        cupom,
         valorTotal
       );
 
-      const opcaoEscolhida = resultadoFrete.opcoes.find(
-        (opcao) => opcao.modalidade === modalidadeFrete
-      );
+      cupomIdValido = cupom.id;
+    }
+
+    let valorFrete = 0;
+
+    if (modalidadeFrete) {
+      const resultadoFrete =
+        await calcularFrete(
+          usuario.cep,
+          itens.length,
+          valorTotal
+        );
+
+      const opcaoEscolhida =
+        resultadoFrete.opcoes.find(
+          (opcao) =>
+            opcao.modalidade === modalidadeFrete
+        );
 
       if (!opcaoEscolhida) {
-        const erro = new Error('Opção de frete inválida.');
+        const erro = new Error(
+          'Opção de frete inválida.'
+        );
+
         erro.code = 'INVALID_SHIPPING';
+
         throw erro;
       }
 
-      valorFrete = opcaoEscolhida.valorFrete;
+      valorFrete =
+        opcaoEscolhida.valorFrete;
     }
 
-    const valorFinal = Math.max(valorTotal - valorDesconto + valorFrete, 0);
+    const valorFinal = Math.max(
+      valorTotal -
+        valorDesconto +
+        valorFrete,
+      0
+    );
 
-    /*
-     * O pedido nasce com o pagamento pendente.
-     */
     const pedidoResult = await client.query(
-  `INSERT INTO pedido (
-    usuario_id,
-    forma_pagamento,
-    valor_total,
-    cupom_id,
-    valor_desconto,
-    valor_frete,
-    valor_final,
-    status_pagamento,
-    cep_entrega,
-    logradouro_entrega,
-    numero_entrega,
-    complemento_entrega,
-    bairro_entrega,
-    cidade_entrega,
-    estado_entrega
-  )
-  VALUES (
-    $1, 'pendente', $2, $3, $4, $5, $6, 'pendente',
-    $7, $8, $9, $10, $11, $12, $13
-  )
-  RETURNING *`,
-  [
-    usuarioId,
-    valorTotal,
-    cupomIdValido,
-    valorDesconto,
-    valorFrete,
-    valorFinal,
-
-    usuario.cep,
-    usuario.logradouro,
-    usuario.numero,
-    usuario.complemento,
-    usuario.bairro,
-    usuario.cidade,
-    usuario.estado,
-  ]
-);
+      `INSERT INTO pedido (
+        usuario_id,
+        forma_pagamento,
+        valor_total,
+        cupom_id,
+        valor_desconto,
+        valor_frete,
+        valor_final,
+        status_pagamento,
+        cep_entrega,
+        logradouro_entrega,
+        numero_entrega,
+        complemento_entrega,
+        bairro_entrega,
+        cidade_entrega,
+        estado_entrega
+      )
+      VALUES (
+        $1,
+        'pendente',
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        'pendente',
+        $7,
+        $8,
+        $9,
+        $10,
+        $11,
+        $12,
+        $13
+      )
+      RETURNING *`,
+      [
+        usuarioId,
+        valorTotal,
+        cupomIdValido,
+        valorDesconto,
+        valorFrete,
+        valorFinal,
+        usuario.cep,
+        usuario.logradouro,
+        usuario.numero,
+        usuario.complemento,
+        usuario.bairro,
+        usuario.cidade,
+        usuario.estado,
+      ]
+    );
 
     const pedido = pedidoResult.rows[0];
 
-    /*
-     * Cria os itens e reserva o estoque.
-     */
     for (const item of itensComPreco) {
       await client.query(
         `INSERT INTO item_pedido (
@@ -264,24 +302,34 @@ async function criarPedidoComItens({
           preco_unitario
         )
         VALUES ($1, $2, $3, $4)`,
-        [pedido.id, item.variacaoId, item.quantidade, item.preco]
+        [
+          pedido.id,
+          item.variacaoId,
+          item.quantidade,
+          item.preco,
+        ]
       );
 
-      const estoqueResult = await client.query(
-        `UPDATE variacao
-         SET estoque =
-           estoque - $1
-         WHERE id = $2
-           AND estoque >= $1
-         RETURNING id`,
-        [item.quantidade, item.variacaoId]
-      );
+      const estoqueResult =
+        await client.query(
+          `UPDATE variacao
+           SET estoque = estoque - $1
+           WHERE id = $2
+             AND estoque >= $1
+           RETURNING id`,
+          [
+            item.quantidade,
+            item.variacaoId,
+          ]
+        );
 
       if (estoqueResult.rowCount === 0) {
         const erro = new Error(
           `Estoque insuficiente para a variação ${item.variacaoId}.`
         );
+
         erro.code = 'INSUFFICIENT_STOCK';
+
         throw erro;
       }
     }
@@ -297,11 +345,6 @@ async function criarPedidoComItens({
   }
 }
 
-/*
- * Devolve o estoque de um pedido
- * quando o pagamento não é aprovado
- * ou o pedido é cancelado.
- */
 async function devolverEstoquePedido(pedidoId) {
   const client = await pool.connect();
 
@@ -321,8 +364,12 @@ async function devolverEstoquePedido(pedidoId) {
     const pedido = pedidoResult.rows[0];
 
     if (!pedido) {
-      const erro = new Error('Pedido não encontrado.');
+      const erro = new Error(
+        'Pedido não encontrado.'
+      );
+
       erro.code = 'ORDER_NOT_FOUND';
+
       throw erro;
     }
 
@@ -338,10 +385,12 @@ async function devolverEstoquePedido(pedidoId) {
     for (const item of itensResult.rows) {
       await client.query(
         `UPDATE variacao
-         SET estoque =
-           estoque + $1
+         SET estoque = estoque + $1
          WHERE id = $2`,
-        [item.quantidade, item.variacao_id]
+        [
+          item.quantidade,
+          item.variacao_id,
+        ]
       );
     }
 
@@ -354,7 +403,10 @@ async function devolverEstoquePedido(pedidoId) {
   }
 }
 
-async function atualizarStatusPedido(id, status) {
+async function atualizarStatusPedido(
+  id,
+  status
+) {
   const result = await pool.query(
     `UPDATE pedido
      SET status = $1
@@ -367,22 +419,63 @@ async function atualizarStatusPedido(id, status) {
 }
 
 /*
- * Atualiza o status_pagamento do pedido
- * (usado pelo webhook do Mercado Pago).
+ * Mapeia o payment_type_id do Mercado Pago
+ * para os valores aceitos pela coluna
+ * forma_pagamento.
  */
-async function atualizarStatusPagamento(pedidoId, statusPagamento) {
+function mapearFormaPagamento(
+  paymentTypeId
+) {
+  const mapa = {
+    bank_transfer: 'pix',
+    ticket: 'boleto',
+    credit_card: 'cartao',
+    debit_card: 'cartao',
+    prepaid_card: 'cartao',
+    digital_wallet: 'cartao',
+    account_money: 'cartao',
+  };
+
+  return (
+    mapa[paymentTypeId] ||
+    'pendente'
+  );
+}
+
+/*
+ * Atualiza o status do pagamento e a forma
+ * de pagamento utilizada.
+ */
+async function atualizarStatusEFormaPagamento(
+  pedidoId,
+  statusPagamento,
+  paymentTypeId
+) {
+  const formaPagamento =
+    mapearFormaPagamento(
+      paymentTypeId
+    );
+
   const result = await pool.query(
     `UPDATE pedido
-     SET status_pagamento = $1
-     WHERE id = $2
+     SET
+       status_pagamento = $1,
+       forma_pagamento = $2
+     WHERE id = $3
      RETURNING *`,
-    [statusPagamento, pedidoId]
+    [
+      statusPagamento,
+      formaPagamento,
+      pedidoId,
+    ]
   );
 
   return result.rows[0];
 }
 
-async function listarPedidosPorUsuario(usuarioId) {
+async function listarPedidosPorUsuario(
+  usuarioId
+) {
   const result = await pool.query(
     `SELECT *
      FROM pedido
@@ -418,24 +511,17 @@ async function buscarPedidoComItens(id) {
          json_agg(
            json_build_object(
              'id', ip.id,
-             'variacao_id',
-               ip.variacao_id,
-             'quantidade',
-               ip.quantidade,
-             'preco_unitario',
-               ip.preco_unitario,
-             'produto',
-               pr.nome,
-             'cor',
-               v.cor,
-             'tamanho',
-               v.tamanho,
+             'variacao_id', ip.variacao_id,
+             'quantidade', ip.quantidade,
+             'preco_unitario', ip.preco_unitario,
+             'produto', pr.nome,
+             'cor', v.cor,
+             'tamanho', v.tamanho,
              'imagem_url',
                (
                  SELECT pi.url
                  FROM produto_imagem pi
-                 WHERE pi.produto_id =
-                   pr.id
+                 WHERE pi.produto_id = pr.id
                  ORDER BY pi.ordem
                  LIMIT 1
                )
@@ -468,132 +554,135 @@ async function buscarPedidoComItens(id) {
   return pedidoResult.rows[0];
 }
 
-async function atualizarMercadoPagoId(pedidoId, mercadoPagoId) {
+async function atualizarMercadoPagoId(
+  pedidoId,
+  mercadoPagoId
+) {
   const result = await pool.query(
     `UPDATE pedido
      SET mercado_pago_id = $1
      WHERE id = $2
      RETURNING *`,
-    [mercadoPagoId, pedidoId]
+    [
+      mercadoPagoId,
+      pedidoId,
+    ]
   );
 
   return result.rows[0];
 }
 
-/*
- * Status que ainda permitem o
- * cancelamento do pedido pelo
- * próprio cliente.
- */
-const STATUS_CANCELAVEIS = ['recebido', 'em_separacao'];
+const STATUS_CANCELAVEIS = [
+  'recebido',
+];
 
-async function cancelarPedido(pedidoId, usuarioId) {
+async function cancelarPedido(
+  pedidoId,
+  usuarioId
+) {
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
 
-    const pedidoResult = await client.query(
-      `SELECT
-         id,
-         usuario_id,
-         status
-       FROM pedido
-       WHERE id = $1
-       FOR UPDATE`,
-      [pedidoId]
-    );
+    const pedidoResult =
+      await client.query(
+        `SELECT
+           id,
+           usuario_id,
+           status
+         FROM pedido
+         WHERE id = $1
+         FOR UPDATE`,
+        [pedidoId]
+      );
 
-    const pedido = pedidoResult.rows[0];
+    const pedido =
+      pedidoResult.rows[0];
 
     if (!pedido) {
-      const erro = new Error('Pedido não encontrado.');
-      erro.code = 'ORDER_NOT_FOUND';
+      const erro = new Error(
+        'Pedido não encontrado.'
+      );
+
+      erro.code =
+        'ORDER_NOT_FOUND';
+
       throw erro;
     }
 
-    if (pedido.usuario_id !== usuarioId) {
-      const erro = new Error('Acesso negado a este pedido.');
-      erro.code = 'ORDER_FORBIDDEN';
+    if (
+      pedido.usuario_id !==
+      usuarioId
+    ) {
+      const erro = new Error(
+        'Acesso negado a este pedido.'
+      );
+
+      erro.code =
+        'ORDER_FORBIDDEN';
+
       throw erro;
     }
 
-    if (!STATUS_CANCELAVEIS.includes(pedido.status)) {
-      const erro = new Error('Este pedido não pode mais ser cancelado.');
-      erro.code = 'ORDER_CANNOT_CANCEL';
+    if (
+      !STATUS_CANCELAVEIS.includes(
+        pedido.status
+      )
+    ) {
+      const erro = new Error(
+        'Este pedido não pode mais ser cancelado.'
+      );
+
+      erro.code =
+        'ORDER_CANNOT_CANCEL';
+
       throw erro;
     }
 
-    const itensResult = await client.query(
-      `SELECT
-         variacao_id,
-         quantidade
-       FROM item_pedido
-       WHERE pedido_id = $1`,
-      [pedidoId]
-    );
+    const itensResult =
+      await client.query(
+        `SELECT
+           variacao_id,
+           quantidade
+         FROM item_pedido
+         WHERE pedido_id = $1`,
+        [pedidoId]
+      );
 
-    for (const item of itensResult.rows) {
+    for (
+      const item of itensResult.rows
+    ) {
       await client.query(
         `UPDATE variacao
-         SET estoque =
-           estoque + $1
+         SET estoque = estoque + $1
          WHERE id = $2`,
-        [item.quantidade, item.variacao_id]
+        [
+          item.quantidade,
+          item.variacao_id,
+        ]
       );
     }
 
-    const pedidoAtualizadoResult = await client.query(
-      `UPDATE pedido
-       SET status = 'cancelado'
-       WHERE id = $1
-       RETURNING *`,
-      [pedidoId]
-    );
+    const pedidoAtualizadoResult =
+      await client.query(
+        `UPDATE pedido
+         SET status = 'cancelado'
+         WHERE id = $1
+         RETURNING *`,
+        [pedidoId]
+      );
 
     await client.query('COMMIT');
 
-    return pedidoAtualizadoResult.rows[0];
+    return pedidoAtualizadoResult
+      .rows[0];
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
   } finally {
     client.release();
   }
-}
-
-/*
- * Mapeia o payment_type_id do Mercado Pago para os valores
- * aceitos na coluna forma_pagamento.
- */
-function mapearFormaPagamento(paymentTypeId) {
-  const mapa = {
-    bank_transfer: 'pix',
-    ticket: 'boleto',
-    credit_card: 'cartao',
-    debit_card: 'cartao',
-    prepaid_card: 'cartao',
-    digital_wallet: 'cartao',
-    account_money: 'cartao',
-  };
-
-  return mapa[paymentTypeId] || 'pendente';
-}
-
-async function atualizarStatusEFormaPagamento(pedidoId, statusPagamento, paymentTypeId) {
-  const formaPagamento = mapearFormaPagamento(paymentTypeId);
-
-  const result = await pool.query(
-    `UPDATE pedido
-     SET
-       status_pagamento = $1,
-       forma_pagamento = $2
-     WHERE id = $3
-     RETURNING *`,
-    [statusPagamento, formaPagamento, pedidoId]
-  );
-
-  return result.rows[0];
 }
 
 module.exports = {
@@ -608,3 +697,4 @@ module.exports = {
   buscarPedidoComItens,
   cancelarPedido,
 };
+

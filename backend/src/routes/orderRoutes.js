@@ -137,6 +137,6 @@ router.patch(
  */
 router.put('/:id/status', autenticar, apenasAdmin, atualizarStatus);
 
-router.post('/webhook', webhook)
+router.post('/webhook', webhook);
 
 module.exports = router;

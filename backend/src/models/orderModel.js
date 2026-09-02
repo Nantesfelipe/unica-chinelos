@@ -487,7 +487,48 @@ async function listarPedidosPorUsuario(
   return result.rows;
 }
 
-async function listarTodosPedidos() {
+async function listarTodosPedidos({
+  pagina = 1,
+  porPagina = 20,
+  busca = '',
+  status = '',
+} = {}) {
+  const offset = (Number(pagina) - 1) * Number(porPagina);
+
+  const condicoes = [];
+  const parametros = [];
+
+  if (busca) {
+    parametros.push(`%${busca}%`);
+    condicoes.push(
+      `(u.nome ILIKE $${parametros.length} OR u.email ILIKE $${parametros.length} OR p.id::text = ${JSON.stringify(busca).replace(/"/g, "'")})`
+    );
+  }
+
+  if (status && status !== 'todos') {
+    parametros.push(status);
+    condicoes.push(`p.status = $${parametros.length}`);
+  }
+
+  const whereClause =
+    condicoes.length > 0
+      ? `WHERE ${condicoes.join(' AND ')}`
+      : '';
+
+  const totalResult = await pool.query(
+    `SELECT COUNT(*)::integer AS total
+     FROM pedido p
+     JOIN usuario u
+       ON u.id = p.usuario_id
+     ${whereClause}`,
+    parametros
+  );
+
+  const total = totalResult.rows[0].total;
+
+  parametros.push(Number(porPagina));
+  parametros.push(offset);
+
   const result = await pool.query(
     `SELECT
        p.*,
@@ -496,10 +537,20 @@ async function listarTodosPedidos() {
      FROM pedido p
      JOIN usuario u
        ON u.id = p.usuario_id
-     ORDER BY p.created_at DESC`
+     ${whereClause}
+     ORDER BY p.created_at DESC
+     LIMIT $${parametros.length - 1}
+     OFFSET $${parametros.length}`,
+    parametros
   );
 
-  return result.rows;
+  return {
+    dados: result.rows,
+    total,
+    pagina: Number(pagina),
+    porPagina: Number(porPagina),
+    totalPaginas: Math.max(1, Math.ceil(total / Number(porPagina))),
+  };
 }
 
 async function buscarPedidoComItens(id) {

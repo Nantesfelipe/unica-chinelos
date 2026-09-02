@@ -12,9 +12,9 @@ async function listar(req, res) {
 
     res.json(tipos);
   } catch (err) {
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -24,9 +24,9 @@ async function listarTiposComProdutosController(req, res) {
 
     res.json(tipos);
   } catch (err) {
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -50,9 +50,9 @@ async function criar(req, res) {
       });
     }
 
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -89,9 +89,9 @@ async function atualizar(req, res) {
       });
     }
 
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -116,9 +116,9 @@ async function excluir(req, res) {
       });
     }
 
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 

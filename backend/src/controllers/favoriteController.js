@@ -5,7 +5,9 @@ async function adicionar(req, res) {
     const favorito = await adicionarFavorito(req.usuario.id, req.body.produtoId);
     res.status(201).json(favorito);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -14,7 +16,9 @@ async function remover(req, res) {
     await removerFavorito(req.usuario.id, req.params.produtoId);
     res.status(204).send();
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -23,7 +27,9 @@ async function listar(req, res) {
     const favoritos = await listarFavoritosPorUsuario(req.usuario.id);
     res.json(favoritos);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 

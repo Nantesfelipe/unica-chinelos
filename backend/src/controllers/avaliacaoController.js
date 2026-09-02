@@ -37,7 +37,9 @@ async function criar(req, res) {
       return res.status(409).json({ erro: 'Você já avaliou este produto.' });
     }
 
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -55,7 +57,9 @@ async function listar(req, res) {
       total: resumo.total,
     });
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -74,7 +78,9 @@ async function excluir(req, res) {
     await excluirAvaliacao(req.params.avaliacaoId);
     res.status(204).send();
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 

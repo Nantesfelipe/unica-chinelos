@@ -5,6 +5,18 @@ const upload = require('../middlewares/uploadMiddleware');
 const { upload: uploadImagens, listar } = require('../controllers/productImageController');
 const { autenticar, apenasAdmin } = require('../middlewares/authMiddleware');
 
+function tratarErroUpload(err, req, res, next) {
+  if (err) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ erro: 'Imagem muito grande. Tamanho máximo: 5MB.' });
+    }
+
+    return res.status(400).json({ erro: err.message || 'Erro ao enviar imagem.' });
+  }
+
+  next();
+}
+
 /**
  * @swagger
  * /products/{id}/images:
@@ -48,7 +60,15 @@ const { autenticar, apenasAdmin } = require('../middlewares/authMiddleware');
  *       500:
  *         description: Erro interno do servidor.
  */
-router.post('/', autenticar, apenasAdmin, upload.array('imagens', 5), uploadImagens);
+router.post(
+  '/',
+  autenticar,
+  apenasAdmin,
+  (req, res, next) => {
+    upload.array('imagens', 5)(req, res, (err) => tratarErroUpload(err, req, res, next));
+  },
+  uploadImagens
+);
 
 /**
  * @swagger

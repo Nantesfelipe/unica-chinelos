@@ -35,7 +35,9 @@ async function criar(req, res) {
     });
     res.status(201).json(produto);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -50,7 +52,9 @@ async function listar(req, res) {
     });
     res.json(produtos);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -62,7 +66,9 @@ async function buscarPorId(req, res) {
     }
     res.json(produto);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -94,7 +100,9 @@ async function atualizar(req, res) {
     }
     res.json(produto);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -106,7 +114,9 @@ async function desativar(req, res) {
     }
     res.json(produto);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -118,7 +128,9 @@ async function reativar(req, res) {
     }
     res.json(produto);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 async function excluirDefinitivo(req, res) {
@@ -131,7 +143,9 @@ async function excluirDefinitivo(req, res) {
         erro: 'Não é possível excluir definitivamente: este produto possui pedidos ou favoritos vinculados. Use "Desativar" para removê-lo do catálogo.',
       });
     }
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 
 

@@ -34,7 +34,9 @@ async function upload(req, res) {
 
     res.status(201).json(imagensSalvas);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -43,7 +45,9 @@ async function listar(req, res) {
     const imagens = await listarImagensPorProduto(req.params.id);
     res.json(imagens);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 

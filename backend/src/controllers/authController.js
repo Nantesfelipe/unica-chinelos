@@ -88,9 +88,9 @@ async function cadastrar(req, res) {
       err
     );
 
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -188,9 +188,9 @@ async function login(req, res) {
       err
     );
 
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -218,9 +218,9 @@ async function usuarioAtual(
       err
     );
 
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -562,9 +562,9 @@ async function redefinirSenha(
       err
     );
 
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 

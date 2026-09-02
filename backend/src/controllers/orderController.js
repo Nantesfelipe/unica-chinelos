@@ -291,16 +291,15 @@ function validarAssinaturaWebhook(req, dataId) {
  */
 async function webhook(req, res) {
   try {
-
-    console.log('Webhook recebido:', { tipo: req.query.type || req.body?.type });
-    
     const dataId =
       req.query['data.id'] ||
       req.body?.data?.id;
-    console.log('DATA ID EXTRAÍDO:', dataId);
+
     const tipo =
       req.query.type ||
       req.body?.type;
+
+    console.log('Webhook recebido:', { tipo, dataId });
 
     if (tipo !== 'payment' || !dataId) {
       return res.status(200).send();
@@ -434,9 +433,9 @@ async function atualizarStatus(req, res) {
 
     res.json(pedido);
   } catch (err) {
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -449,9 +448,9 @@ async function meusPedidos(req, res) {
 
     res.json(pedidos);
   } catch (err) {
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -480,22 +479,33 @@ async function detalhesPedido(req, res) {
 
     res.json(pedido);
   } catch (err) {
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
 async function todosPedidos(req, res) {
   try {
-    const pedidos =
-      await listarTodosPedidos();
+    const {
+      pagina = 1,
+      porPagina = 20,
+      busca = '',
+      status = '',
+    } = req.query;
 
-    res.json(pedidos);
-  } catch (err) {
-    res.status(500).json({
-      erro: err.message,
+    const resultado = await listarTodosPedidos({
+      pagina,
+      porPagina,
+      busca,
+      status,
     });
+
+    res.json(resultado);
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -537,9 +547,9 @@ async function cancelarPedidoController(
       });
     }
 
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 

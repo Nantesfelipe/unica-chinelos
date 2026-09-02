@@ -9,7 +9,9 @@ async function criar(req, res) {
     const categoria = await criarCategoria(nome);
     res.status(201).json(categoria);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -18,7 +20,9 @@ async function listar(req, res) {
     const categorias = await listarCategorias();
     res.json(categorias);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -32,7 +36,9 @@ async function excluir(req, res) {
         erro: 'Não é possível excluir esta categoria porque existem produtos vinculados a ela.',
       });
     }
-    res.status(500).json({ erro: err.message });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 

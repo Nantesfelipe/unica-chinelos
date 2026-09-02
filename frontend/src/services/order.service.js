@@ -29,8 +29,21 @@ export function atualizarStatusPedido(id, dados) {
   });
 }
 
-export function listarTodosPedidos() {
-  return api('/orders/admin');
+export function listarTodosPedidos({
+  pagina = 1,
+  porPagina = 20,
+  busca = '',
+  status = '',
+} = {}) {
+  const params = new URLSearchParams({
+    pagina,
+    porPagina,
+  });
+
+  if (busca) params.set('busca', busca);
+  if (status && status !== 'todos') params.set('status', status);
+
+  return api(`/orders/admin?${params.toString()}`);
 }
 
 export function cancelarPedido(id) {

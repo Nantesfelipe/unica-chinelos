@@ -1,7 +1,18 @@
 import { api } from './api';
 
-export function listarClientes() {
-  return api('/users/clientes');
+export function listarClientes({
+  pagina = 1,
+  porPagina = 20,
+  busca = '',
+} = {}) {
+  const params = new URLSearchParams({
+    pagina,
+    porPagina,
+  });
+
+  if (busca) params.set('busca', busca);
+
+  return api(`/users/clientes?${params.toString()}`);
 }
 
 export function buscarCliente(id) {

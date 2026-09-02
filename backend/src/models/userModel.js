@@ -125,7 +125,35 @@ async function atualizarPerfil(
   return result.rows[0];
 }
 
-async function listarClientes() {
+async function listarClientes({
+  pagina = 1,
+  porPagina = 20,
+  busca = '',
+} = {}) {
+  const offset = (Number(pagina) - 1) * Number(porPagina);
+
+  const condicoes = [`tipo = 'cliente'`];
+  const parametros = [];
+
+  if (busca) {
+    parametros.push(`%${busca}%`);
+    condicoes.push(
+      `(nome ILIKE $${parametros.length} OR email ILIKE $${parametros.length})`
+    );
+  }
+
+  const whereClause = `WHERE ${condicoes.join(' AND ')}`;
+
+  const totalResult = await pool.query(
+    `SELECT COUNT(*)::integer AS total FROM usuario ${whereClause}`,
+    parametros
+  );
+
+  const total = totalResult.rows[0].total;
+
+  parametros.push(Number(porPagina));
+  parametros.push(offset);
+
   const result = await pool.query(
     `SELECT
        id,
@@ -143,11 +171,20 @@ async function listarClientes() {
        cidade,
        estado
      FROM usuario
-     WHERE tipo = 'cliente'
-     ORDER BY created_at DESC`
+     ${whereClause}
+     ORDER BY created_at DESC
+     LIMIT $${parametros.length - 1}
+     OFFSET $${parametros.length}`,
+    parametros
   );
 
-  return result.rows;
+  return {
+    dados: result.rows,
+    total,
+    pagina: Number(pagina),
+    porPagina: Number(porPagina),
+    totalPaginas: Math.max(1, Math.ceil(total / Number(porPagina))),
+  };
 }
 
 async function buscarClienteComPedidos(id) {
@@ -169,11 +206,11 @@ async function buscarClienteComPedidos(id) {
 
        COUNT(p.id)::integer AS total_pedidos,
 
-       COALESCE(
+               COALESCE(
          SUM(
            CASE
              WHEN p.status <> 'cancelado'
-             THEN p.valor_total
+             THEN p.valor_final
              ELSE 0
            END
          ),
@@ -185,7 +222,7 @@ async function buscarClienteComPedidos(id) {
            json_build_object(
              'id', p.id,
              'status', p.status,
-             'valor_total', p.valor_total,
+             'valor_final', p.valor_final,
              'created_at', p.created_at,
              'forma_pagamento', p.forma_pagamento
            )

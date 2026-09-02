@@ -86,9 +86,9 @@ async function criar(req, res) {
 
     res.status(201).json(cupom);
   } catch (err) {
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -99,9 +99,9 @@ async function listar(req, res) {
 
     res.json(cupons);
   } catch (err) {
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -126,9 +126,9 @@ async function atualizar(req, res) {
 
     res.json(cupom);
   } catch (err) {
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -148,9 +148,9 @@ async function excluir(req, res) {
 
     res.status(204).send();
   } catch (err) {
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -254,9 +254,9 @@ async function validar(req, res) {
       valorFinal,
     });
   } catch (err) {
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 

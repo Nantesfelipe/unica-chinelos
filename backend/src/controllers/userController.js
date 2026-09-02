@@ -10,14 +10,23 @@ async function listarClientesController(
   res
 ) {
   try {
-    const clientes =
-      await listarClientes();
+    const {
+      pagina = 1,
+      porPagina = 20,
+      busca = '',
+    } = req.query;
 
-    res.json(clientes);
-  } catch (err) {
-    res.status(500).json({
-      erro: err.message,
+    const resultado = await listarClientes({
+      pagina,
+      porPagina,
+      busca,
     });
+
+    res.json(resultado);
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -39,9 +48,9 @@ async function buscarClienteController(
 
     res.json(cliente);
   } catch (err) {
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -110,9 +119,9 @@ async function atualizarMeuPerfil(
       });
     }
 
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 
@@ -134,9 +143,9 @@ async function meuPerfil(
 
     res.json(usuario);
   } catch (err) {
-    res.status(500).json({
-      erro: err.message,
-    });
+    console.error(err);
+
+    res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 }
 

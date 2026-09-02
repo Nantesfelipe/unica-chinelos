@@ -1,4 +1,3 @@
-
 const crypto = require('crypto');
 
 const {
@@ -13,9 +12,10 @@ const {
   cancelarPedido,
 } = require('../models/orderModel');
 
+const { buscarPorId } = require('../models/userModel');
+
 const {
   MercadoPagoConfig,
-  Preference,
   Payment,
 } = require('mercadopago');
 
@@ -23,8 +23,21 @@ const mercadoPagoClient = new MercadoPagoConfig({
   accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN,
 });
 
-const preferenceClient = new Preference(mercadoPagoClient);
 const paymentClient = new Payment(mercadoPagoClient);
+
+/*
+ * Mapeia o status do Mercado Pago
+ * para o status do pedido.
+ */
+const MAPA_STATUS_PAGAMENTO = {
+  approved: 'aprovado',
+  pending: 'pendente',
+  in_process: 'pendente',
+  rejected: 'rejeitado',
+  cancelled: 'cancelado',
+  refunded: 'estornado',
+  charged_back: 'estornado',
+};
 
 async function finalizar(req, res) {
   let pedidoCriado = null;
@@ -68,91 +81,12 @@ async function finalizar(req, res) {
       );
     }
 
-    const itensPreferencia = (
-      pedidoDetalhado.itens || []
-    ).map((item) => ({
-      id: String(item.variacao_id),
-      title: item.produto,
-      quantity: Number(item.quantidade),
-      unit_price: Number(item.preco_unitario),
-      currency_id: 'BRL',
-    }));
-
-    if (Number(pedidoDetalhado.valor_frete) > 0) {
-      itensPreferencia.push({
-        id: 'frete',
-        title: 'Frete',
-        quantity: 1,
-        unit_price: Number(pedidoDetalhado.valor_frete),
-        currency_id: 'BRL',
-      });
-    }
-
-    if (Number(pedidoDetalhado.valor_desconto) > 0) {
-      itensPreferencia.push({
-        id: 'desconto',
-        title: 'Desconto (cupom)',
-        quantity: 1,
-        unit_price: -Number(
-          pedidoDetalhado.valor_desconto
-        ),
-        currency_id: 'BRL',
-      });
-    }
-
-    const frontendUrl =
-      process.env.FRONTEND_URL ||
-      'http://localhost:5173';
-
-    const backendUrl = process.env.BACKEND_URL;
-
-    if (!backendUrl) {
-      throw new Error(
-        'BACKEND_URL não configurada — necessária para o webhook do Mercado Pago.'
-      );
-    }
-
-    const preference = await preferenceClient.create({
-      body: {
-        external_reference: String(pedidoCriado.id),
-
-        payer: {
-          name: req.usuario.nome,
-          email: req.usuario.email,
-        },
-
-        items: itensPreferencia,
-
-        back_urls: {
-          success: `${frontendUrl}/pedido/sucesso`,
-          pending: `${frontendUrl}/pedido/pendente`,
-          failure: `${frontendUrl}/pedido/erro`,
-        },
-
-        notification_url: `${backendUrl}/orders/webhook`,
-      },
-    });
-
-    const pedidoAtualizado =
-      await atualizarMercadoPagoId(
-        pedidoCriado.id,
-        preference.id
-      );
-
-    if (!pedidoAtualizado) {
-      throw new Error(
-        'Pedido criado, mas não foi possível salvar o ID do Mercado Pago.'
-      );
-    }
-
     res.status(201).json({
-      pedido: pedidoAtualizado,
-      preferenceId: preference.id,
-      initPoint: preference.init_point,
+      pedido: pedidoDetalhado,
     });
   } catch (err) {
     console.error(
-      'Erro ao criar pedido/pagamento:',
+      'Erro ao criar pedido:',
       err
     );
 
@@ -189,8 +123,100 @@ async function finalizar(req, res) {
     res.status(status).json({
       erro:
         status === 500
-          ? 'Não foi possível iniciar o pagamento.'
+          ? 'Não foi possível criar o pedido.'
           : err.message,
+    });
+  }
+}
+
+async function processarPagamento(req, res) {
+  try {
+    const pedidoId = Number(req.params.id);
+
+    const {
+      token,
+      payment_method_id,
+      issuer_id,
+      installments,
+      payer,
+    } = req.body;
+
+    const pedido = await buscarPedidoComItens(pedidoId);
+
+    if (!pedido) {
+      return res.status(404).json({
+        erro: 'Pedido não encontrado.',
+      });
+    }
+
+    if (pedido.usuario_id !== req.usuario.id) {
+      return res.status(403).json({
+        erro: 'Você não tem permissão para pagar este pedido.',
+      });
+    }
+
+    if (pedido.status_pagamento === 'aprovado') {
+      return res.status(400).json({
+        erro: 'Este pedido já foi pago.',
+      });
+    }
+
+    const usuarioCompleto = await buscarPorId(req.usuario.id);
+
+    const backendUrl = process.env.BACKEND_URL;
+
+    if (!backendUrl) {
+      throw new Error(
+        'BACKEND_URL não configurada.'
+      );
+    }
+
+    // ⚠️ valor sempre vem do banco, nunca do frontend.
+    const pagamento = await paymentClient.create({
+      body: {
+        transaction_amount: Number(pedido.valor_final),
+        token,
+        description: `Pedido #${pedido.id} - Única Chinelos`,
+        installments: Number(installments) || 1,
+        payment_method_id,
+        issuer_id,
+        payer: {
+          email: payer?.email || usuarioCompleto?.email,
+          identification: payer?.identification,
+        },
+        external_reference: String(pedido.id),
+        notification_url: `${backendUrl}/orders/webhook`,
+      },
+    });
+
+    const statusPagamento =
+      MAPA_STATUS_PAGAMENTO[pagamento.status] || 'pendente';
+
+    await atualizarStatusEFormaPagamento(
+      pedido.id,
+      statusPagamento,
+      pagamento.payment_type_id
+    );
+
+    await atualizarMercadoPagoId(pedido.id, String(pagamento.id));
+
+    if (statusPagamento === 'rejeitado') {
+      await devolverEstoquePedido(pedido.id);
+      await atualizarStatusPedido(pedido.id, 'cancelado');
+    }
+
+    res.status(201).json({
+      status: pagamento.status,
+      statusDetail: pagamento.status_detail,
+      pedidoId: pedido.id,
+      paymentId: pagamento.id,
+      pontoDeInteracao: pagamento.point_of_interaction || null,
+    });
+  } catch (err) {
+    console.error('Erro ao processar pagamento:', err);
+
+    res.status(500).json({
+      erro: 'Não foi possível processar o pagamento.',
     });
   }
 }
@@ -261,30 +287,13 @@ function validarAssinaturaWebhook(req, dataId) {
 }
 
 /*
- * Mapeia o status do Mercado Pago
- * para o status do pedido.
- */
-const MAPA_STATUS_PAGAMENTO = {
-  approved: 'aprovado',
-  pending: 'pendente',
-  in_process: 'pendente',
-  rejected: 'rejeitado',
-  cancelled: 'cancelado',
-  refunded: 'estornado',
-  charged_back: 'estornado',
-};
-
-/*
  * Webhook do Mercado Pago.
  */
 async function webhook(req, res) {
   try {
 
-     console.log('WEBHOOK RECEBIDO:', {
-      query: req.query,
-      body: req.body,
-
-    });
+    console.log('Webhook recebido:', { tipo: req.query.type || req.body?.type });
+    
     const dataId =
       req.query['data.id'] ||
       req.body?.data?.id;
@@ -536,6 +545,7 @@ async function cancelarPedidoController(
 
 module.exports = {
   finalizar,
+  processarPagamento,
   atualizarStatus,
   meusPedidos,
   todosPedidos,

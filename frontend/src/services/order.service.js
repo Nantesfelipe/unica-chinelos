@@ -7,6 +7,13 @@ export function finalizarPedido(dados) {
   });
 }
 
+export function processarPagamento(pedidoId, dadosPagamento) {
+  return api(`/orders/${pedidoId}/pagamento`, {
+    method: 'POST',
+    body: JSON.stringify(dadosPagamento),
+  });
+}
+
 export function listarPedidos() {
   return api('/orders');
 }

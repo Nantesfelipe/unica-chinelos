@@ -11,6 +11,9 @@ import Perfil from '../pages/Perfil';
 import MeusPedidos from '../pages/MeusPedidos';
 import RecuperarSenha from '../pages/RecuperarSenha';
 import RedefinirSenha from '../pages/RedefinirSenha';
+import PedidoSucesso from '../pages/PedidoSucesso';
+import PedidoPendente from '../pages/PedidoPendente';
+import PedidoErro from '../pages/PedidoErro';
 
 function ClientRoutes() {
   return (
@@ -26,10 +29,10 @@ function ClientRoutes() {
       <Route path="/pedidos" element={<MeusPedidos />} />
       <Route path="/recuperar-senha" element={<RecuperarSenha />} />
       <Route path="/redefinir-senha" element={<RedefinirSenha />} />
-        
-      </Route>
-
-    
+      <Route path="/pedido/sucesso" element={<PedidoSucesso />} />
+      <Route path="/pedido/pendente" element={<PedidoPendente />} />
+      <Route path="/pedido/erro" element={<PedidoErro />} />
+    </Route>
   );
 }
 

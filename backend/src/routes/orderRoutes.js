@@ -3,6 +3,7 @@ const router = express.Router();
 
 const {
   finalizar,
+  processarPagamento,
   atualizarStatus,
   meusPedidos,
   todosPedidos,
@@ -40,6 +41,35 @@ const { autenticar, apenasAdmin } = require('../middlewares/authMiddleware');
  *         description: Erro interno do servidor.
  */
 router.post('/', autenticar, finalizar);
+
+/**
+ * @swagger
+ * /orders/{id}/pagamento:
+ *   post:
+ *     tags:
+ *       - Pedidos
+ *     summary: Processa o pagamento de um pedido via Payment Brick.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       201:
+ *         description: Pagamento processado.
+ *       401:
+ *         description: Não autenticado.
+ *       403:
+ *         description: Pedido não pertence ao usuário.
+ *       404:
+ *         description: Pedido não encontrado.
+ *       500:
+ *         description: Erro interno do servidor.
+ */
+router.post('/:id/pagamento', autenticar, processarPagamento);
 
 /**
  * @swagger

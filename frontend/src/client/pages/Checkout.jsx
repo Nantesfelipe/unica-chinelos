@@ -9,11 +9,14 @@ import {
   Truck,
 } from 'lucide-react';
 
+import { Payment } from '@mercadopago/sdk-react';
+
 import useCart from '../../hooks/useCart';
 import useAuth from '../../hooks/useAuth';
 
 import {
   finalizarPedido,
+  processarPagamento,
 } from '../../services/order.service';
 
 import {
@@ -42,6 +45,7 @@ function Checkout() {
     carrinho,
     totalCarrinho,
     quantidadeItens,
+    limparCarrinho,
   } = useCart();
 
   const [
@@ -63,6 +67,10 @@ function Checkout() {
   const [cupomAplicado, setCupomAplicado] = useState(null);
   const [aplicandoCupom, setAplicandoCupom] = useState(false);
   const [erroCupom, setErroCupom] = useState('');
+
+  const [pedidoCriado, setPedidoCriado] = useState(null);
+  const [processandoPagamento, setProcessandoPagamento] = useState(false);
+
   function perfilTemEndereco() {
     if (!usuario) {
       return false;
@@ -161,30 +169,54 @@ function Checkout() {
         modalidadeFrete: opcaoFreteSelecionada?.modalidade || null,
       });
 
-      if (
-        !resposta ||
-        !resposta.initPoint
-      ) {
+      if (!resposta?.pedido) {
         throw new Error(
-          'Não foi possível iniciar o pagamento.'
+          'Não foi possível criar o pedido.'
         );
       }
 
-      /*
-       * O carrinho NÃO é limpo aqui.
-       *
-       * Vamos limpar somente quando tivermos
-       * o retorno adequado do pagamento.
-       */
-      window.location.href =
-        resposta.initPoint;
+      setPedidoCriado(resposta.pedido);
+      setCarregando(false);
     } catch (error) {
       setErro(
         error.message ||
-        'Não foi possível iniciar o pagamento.'
+        'Não foi possível criar o pedido.'
       );
 
       setCarregando(false);
+    }
+  }
+
+  async function handlePagamentoSubmit({ formData }) {
+    setProcessandoPagamento(true);
+    setErro('');
+
+    try {
+      const resultado = await processarPagamento(
+        pedidoCriado.id,
+        formData
+      );
+
+      if (resultado.status === 'approved') {
+        limparCarrinho();
+        navigate('/pedido/sucesso');
+      } else if (
+        resultado.status === 'pending' ||
+        resultado.status === 'in_process'
+      ) {
+        navigate('/pedido/pendente', {
+          state: { pontoDeInteracao: resultado.pontoDeInteracao },
+        });
+      } else {
+        navigate('/pedido/erro');
+      }
+    } catch (error) {
+      setErro(
+        error.message ||
+        'Não foi possível processar o pagamento.'
+      );
+    } finally {
+      setProcessandoPagamento(false);
     }
   }
 
@@ -473,8 +505,6 @@ function Checkout() {
             Cupom de desconto
           </p>
 
-
-
           {cupomAplicado && (
             <div className="flex justify-between text-sm text-green-700">
               <span>Desconto ({cupomAplicado.cupom.codigo})</span>
@@ -557,17 +587,50 @@ function Checkout() {
 
         <div className="mt-6">
           <Button
-            onClick={
-              handleFinalizar
-            }
+            onClick={handleFinalizar}
             disabled={
               !autenticado ||
-              !perfilTemEndereco()
+              !perfilTemEndereco() ||
+              !!pedidoCriado
             }
           >
-            Ir para pagamento
+            {pedidoCriado ? 'Pedido criado' : 'Ir para pagamento'}
           </Button>
         </div>
+
+        {pedidoCriado && (
+          <div className="mt-6 border-t border-[#8e8980]/20 pt-6">
+            <h3 className="font-semibold text-[#171511] mb-4">
+              Pagamento
+            </h3>
+
+            {processandoPagamento && (
+              <p className="text-sm text-[#746c5c] mb-3">
+                Processando pagamento...
+              </p>
+            )}
+
+            <Payment
+              initialization={{
+                amount: Number(pedidoCriado.valor_final),
+                payer: { email: usuario?.email },
+              }}
+              customization={{
+                paymentMethods: {
+                  creditCard: 'all',
+                  debitCard: 'all',
+                  bankTransfer: 'all',
+                  ticket: 'all',
+                },
+              }}
+              onSubmit={handlePagamentoSubmit}
+              onError={(error) => {
+                console.error(error);
+                setErro('Erro ao carregar o formulário de pagamento.');
+              }}
+            />
+          </div>
+        )}
       </div>
     </section>
   );

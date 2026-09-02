@@ -450,7 +450,7 @@ function Pedidos() {
 
                     <p className="text-sm font-medium text-[#171511] mt-1">
                       {formatCurrency(
-                        pedidoSelecionado.valor_total
+                        pedidoSelecionado.valor_final
                       )}
                     </p>
                   </div>
@@ -617,16 +617,54 @@ function Pedidos() {
                   )}
                 </div>
 
-                <div className="border-t border-[#8e8980]/20 pt-5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                  <span className="text-sm text-[#8e8980]">
-                    Total do pedido
-                  </span>
+                <div className="border-t border-[#8e8980]/20 pt-5 space-y-1">
+                  <div className="flex justify-between text-sm text-[#8e8980]">
+                    <span>Subtotal</span>
+                    <span>
+                      {formatCurrency(
+                        pedidoSelecionado.valor_total
+                      )}
+                    </span>
+                  </div>
 
-                  <span className="text-xl font-semibold text-[#171511]">
-                    {formatCurrency(
-                      pedidoSelecionado.valor_total
-                    )}
-                  </span>
+                  {Number(
+                    pedidoSelecionado.valor_desconto
+                  ) > 0 && (
+                    <div className="flex justify-between text-sm text-green-700">
+                      <span>Desconto</span>
+                      <span>
+                        -
+                        {formatCurrency(
+                          pedidoSelecionado.valor_desconto
+                        )}
+                      </span>
+                    </div>
+                  )}
+
+                  {Number(
+                    pedidoSelecionado.valor_frete
+                  ) > 0 && (
+                    <div className="flex justify-between text-sm text-[#8e8980]">
+                      <span>Frete</span>
+                      <span>
+                        {formatCurrency(
+                          pedidoSelecionado.valor_frete
+                        )}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-2">
+                    <span className="text-sm text-[#8e8980]">
+                      Total do pedido
+                    </span>
+
+                    <span className="text-xl font-semibold text-[#171511]">
+                      {formatCurrency(
+                        pedidoSelecionado.valor_final
+                      )}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

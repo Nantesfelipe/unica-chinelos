@@ -203,7 +203,7 @@ function TabelaPedidos({
 
                     <td className="px-5 py-4 font-medium text-[#171511]">
                       {formatCurrency(
-                        pedido.valor_total
+                        pedido.valor_final
                       )}
                     </td>
 
